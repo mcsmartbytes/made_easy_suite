@@ -3,11 +3,9 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
-// Create Supabase client - uses 'suite' schema for unified platform data
+// Create Supabase client - uses public schema for now
+// TODO: Create 'suite' schema and migrate when ready
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  db: {
-    schema: 'suite'  // Made Easy Suite unified schema
-  },
   auth: {
     persistSession: true,
     autoRefreshToken: true,
