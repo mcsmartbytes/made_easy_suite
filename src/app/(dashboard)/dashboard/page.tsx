@@ -36,15 +36,15 @@ const DEMO_DATA = {
     leadsChange: -3,
   },
   actionItems: [
-    { label: 'Quotes awaiting approval', count: 3, href: '/jobs?filter=quotes', priority: 'high' as const },
-    { label: 'Invoices overdue', count: 2, href: '/books?filter=overdue', priority: 'high' as const },
-    { label: 'Jobs over budget', count: 1, href: '/jobs?filter=over-budget', priority: 'medium' as const },
-    { label: 'Expenses need job assignment', count: 4, href: '/expenses?filter=unassigned', priority: 'low' as const },
+    { label: 'Quotes awaiting approval', count: 3, href: '/jobs?filter=quotes', priority: 'high' as const, action: 'Follow up with clients' },
+    { label: 'Invoices overdue', count: 2, href: '/books?filter=overdue', priority: 'high' as const, action: 'Send payment reminders' },
+    { label: 'Jobs over budget', count: 1, href: '/jobs?filter=over-budget', priority: 'medium' as const, action: 'Review labor entries' },
+    { label: 'Expenses need job assignment', count: 4, href: '/expenses?filter=unassigned', priority: 'low' as const, action: 'Assign to jobs' },
   ],
   profitRisks: [
-    { job: 'ABC Corp Parking Lot', jobId: '1', issue: 'Labor trending 18% over estimate', impact: '-$890', severity: 'high' as const },
-    { job: 'City Mall Section B', jobId: '2', issue: 'Materials overspend', impact: '-$340', severity: 'medium' as const },
-    { job: 'Johnson Residence', jobId: '3', issue: 'Scope creep - 2 change orders pending', impact: 'TBD', severity: 'medium' as const },
+    { job: 'ABC Corp Parking Lot', jobId: '1', issue: 'Labor trending 18% over estimate', impact: '-$890', severity: 'high' as const, action: 'Review time entries' },
+    { job: 'City Mall Section B', jobId: '2', issue: 'Materials overspend', impact: '-$340', severity: 'medium' as const, action: 'Check material receipts' },
+    { job: 'Johnson Residence', jobId: '3', issue: 'Scope creep - 2 change orders pending', impact: 'TBD', severity: 'medium' as const, action: 'Approve change orders' },
   ],
   estimateVsActual: {
     estimated: 31200,
@@ -99,6 +99,19 @@ export default function DashboardPage() {
   for (const item of data.actionItems) {
     totalActionItems += item.count;
   }
+
+  // Calculate month-end forecast based on current trend
+  const today = new Date();
+  const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+  const dayOfMonth = today.getDate();
+  const monthProgress = dayOfMonth / daysInMonth;
+
+  // Project month-end based on current actual vs estimated ratio
+  const currentRatio = data.estimateVsActual.estimated > 0
+    ? data.estimateVsActual.actual / data.estimateVsActual.estimated
+    : 1;
+  // Forecast assumes current trend continues - blend current margin with projected
+  const forecastedMargin = data.stats.profitMargin * (0.7 + (currentRatio * 0.3));
 
   // Format currency
   const formatCurrency = (value: number) => {
@@ -230,11 +243,12 @@ export default function DashboardPage() {
           <div className="divide-y divide-gray-100">
             {data.actionItems.map((item, i) => {
               const IconComponent = actionIcons[item.label] || AlertCircle;
+              const actionHint = (item as { action?: string }).action;
               return (
                 <Link
                   key={i}
                   href={item.href}
-                  className="px-5 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors"
+                  className="px-5 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors group"
                 >
                   <div className="flex items-center gap-3">
                     <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
@@ -246,7 +260,14 @@ export default function DashboardPage() {
                         item.priority === 'medium' ? 'text-amber-600' : 'text-gray-600'
                       }`} />
                     </div>
-                    <span className="text-gray-700">{item.label}</span>
+                    <div>
+                      <span className="text-gray-700">{item.label}</span>
+                      {actionHint && (
+                        <span className="hidden group-hover:inline text-blue-600 text-sm ml-2">
+                          → {actionHint}
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className={`font-semibold ${
@@ -255,7 +276,7 @@ export default function DashboardPage() {
                     }`}>
                       {item.count}
                     </span>
-                    <ChevronRight className="w-4 h-4 text-gray-400" />
+                    <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-blue-600 transition-colors" />
                   </div>
                 </Link>
               );
@@ -275,21 +296,34 @@ export default function DashboardPage() {
             </span>
           </div>
           <div className="divide-y divide-gray-100">
-            {data.profitRisks.length > 0 ? data.profitRisks.map((risk, i) => (
-              <div key={i} className="px-5 py-3 hover:bg-gray-50 transition-colors">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium text-gray-900 text-sm">{risk.job}</p>
-                    <p className="text-sm text-gray-500">{risk.issue}</p>
+            {data.profitRisks.length > 0 ? data.profitRisks.map((risk, i) => {
+              const recommendedAction = (risk as { action?: string }).action;
+              return (
+                <Link
+                  key={i}
+                  href={`/jobs/${risk.jobId}`}
+                  className="block px-5 py-3 hover:bg-gray-50 transition-colors group"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <p className="font-medium text-gray-900 text-sm">{risk.job}</p>
+                      <p className="text-sm text-gray-500">{risk.issue}</p>
+                      {recommendedAction && (
+                        <p className="text-xs text-blue-600 mt-1 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <span className="font-medium">Recommended:</span> {recommendedAction}
+                          <ChevronRight className="w-3 h-3" />
+                        </p>
+                      )}
+                    </div>
+                    <span className={`font-semibold ml-4 ${
+                      risk.severity === 'high' ? 'text-red-600' : 'text-amber-600'
+                    }`}>
+                      {risk.impact}
+                    </span>
                   </div>
-                  <span className={`font-semibold ${
-                    risk.severity === 'high' ? 'text-red-600' : 'text-amber-600'
-                  }`}>
-                    {risk.impact}
-                  </span>
-                </div>
-              </div>
-            )) : (
+                </Link>
+              );
+            }) : (
               <div className="px-5 py-6 text-center text-gray-500">
                 <p className="text-sm">No profit risks detected</p>
                 <p className="text-xs mt-1">All jobs are on track!</p>
@@ -329,7 +363,7 @@ export default function DashboardPage() {
             View Details
           </Link>
         </div>
-        <div className="grid md:grid-cols-4 gap-6">
+        <div className="grid md:grid-cols-5 gap-6">
           <div>
             <p className="text-sm text-gray-500 mb-1">Estimated Profit</p>
             <p className="text-2xl font-bold text-gray-900">{formatCurrency(data.estimateVsActual.estimated)}</p>
@@ -343,6 +377,13 @@ export default function DashboardPage() {
             <p className={`text-2xl font-bold ${data.estimateVsActual.variance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
               {data.estimateVsActual.variance >= 0 ? '+' : ''}{formatCurrency(data.estimateVsActual.variance)}
             </p>
+          </div>
+          <div>
+            <p className="text-sm text-gray-500 mb-1">Month-End Forecast</p>
+            <p className={`text-2xl font-bold ${forecastedMargin >= data.stats.profitMargin ? 'text-green-600' : 'text-amber-600'}`}>
+              {forecastedMargin.toFixed(1)}%
+            </p>
+            <p className="text-xs text-gray-400 mt-0.5">margin if trend continues</p>
           </div>
           <div>
             <p className="text-sm text-gray-500 mb-1">Performance</p>
