@@ -52,6 +52,13 @@ const DEMO_DATA = {
     variance: -6620,
     variancePercent: -21.2,
   },
+  dataQuality: {
+    expensesAssignedPercent: 96,
+    expensesPendingCategorization: 2,
+    jobsWithEstimates: 11,
+    totalJobs: 12,
+    lastSyncedAt: new Date().toISOString(),
+  },
   recentJobs: [
     { id: '1', user_id: '', name: 'Johnson Residence - Driveway', client_name: 'Mike Johnson', status: 'active' as const, estimated_revenue: 3200, actual_revenue: 2310, property_address: null, start_date: null, end_date: null, estimated_cost: null, actual_cost: null, created_at: '', updated_at: '' },
     { id: '2', user_id: '', name: 'ABC Corp Parking Lot', client_name: 'ABC Corporation', status: 'planned' as const, estimated_revenue: 12500, actual_revenue: 8300, property_address: null, start_date: null, end_date: null, estimated_cost: null, actual_cost: null, created_at: '', updated_at: '' },
@@ -87,6 +94,9 @@ export default function DashboardPage() {
     isLoading: false,
     error: null,
   } : dashboardData;
+
+  // Get data quality info (for confidence indicators)
+  const dataQuality = (data as typeof DEMO_DATA).dataQuality;
 
   const quickActions = [
     { label: 'New Job', href: '/jobs/new', icon: Briefcase, color: 'bg-blue-600' },
@@ -400,6 +410,25 @@ export default function DashboardPage() {
             </div>
           </div>
         </div>
+        {/* Data Confidence Indicator */}
+        {dataQuality && (
+          <div className="mt-4 pt-4 border-t border-gray-100 flex items-center justify-between text-xs text-gray-400">
+            <div className="flex items-center gap-4">
+              <span className="flex items-center gap-1">
+                <span className={`w-2 h-2 rounded-full ${dataQuality.expensesAssignedPercent >= 90 ? 'bg-green-400' : dataQuality.expensesAssignedPercent >= 70 ? 'bg-amber-400' : 'bg-red-400'}`}></span>
+                Based on {dataQuality.expensesAssignedPercent}% of expenses assigned to jobs
+              </span>
+              {dataQuality.expensesPendingCategorization > 0 && (
+                <span className="text-amber-500">
+                  {dataQuality.expensesPendingCategorization} expense{dataQuality.expensesPendingCategorization > 1 ? 's' : ''} pending categorization
+                </span>
+              )}
+            </div>
+            <span>
+              {dataQuality.jobsWithEstimates}/{dataQuality.totalJobs} jobs have estimates
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Two Column Layout */}
