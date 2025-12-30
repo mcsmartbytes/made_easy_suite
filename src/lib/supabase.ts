@@ -19,3 +19,33 @@ export function getSchemaClient(schema: 'suite' | 'expenses' | 'books' | 'crm' |
     db: { schema }
   });
 }
+
+// Validate a parent app's Supabase access token
+export async function validateParentToken(token: string): Promise<{
+  valid: boolean;
+  email?: string;
+  userId?: string;
+  error?: string;
+}> {
+  try {
+    // Create a new client with the provided token to get the user
+    const { data: { user }, error } = await supabase.auth.getUser(token);
+
+    if (error) {
+      return { valid: false, error: error.message };
+    }
+
+    if (!user || !user.email) {
+      return { valid: false, error: 'No user found for token' };
+    }
+
+    return {
+      valid: true,
+      email: user.email,
+      userId: user.id,
+    };
+  } catch (error: any) {
+    console.error('Token validation error:', error);
+    return { valid: false, error: 'Failed to validate token' };
+  }
+}

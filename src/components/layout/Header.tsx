@@ -1,16 +1,29 @@
 'use client';
 
-import { Bell, Search, User } from 'lucide-react';
+import { Bell, Search, User, Menu } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
-export default function Header() {
+interface HeaderProps {
+  onMenuClick: () => void;
+}
+
+export default function Header({ onMenuClick }: HeaderProps) {
   const { user } = useAuth();
 
   return (
-    <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6">
-      {/* Search */}
-      <div className="flex items-center gap-4 flex-1">
-        <div className="relative max-w-md w-full">
+    <header className="h-14 md:h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 md:px-6">
+      {/* Left side - Hamburger + Search */}
+      <div className="flex items-center gap-3 flex-1">
+        {/* Hamburger menu - mobile only */}
+        <button
+          onClick={onMenuClick}
+          className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors md:hidden"
+        >
+          <Menu className="w-5 h-5" />
+        </button>
+
+        {/* Search - hidden on small mobile */}
+        <div className="relative max-w-md w-full hidden sm:block">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
             type="text"
@@ -21,7 +34,7 @@ export default function Header() {
       </div>
 
       {/* Right side */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-2 md:gap-4">
         {/* Notifications */}
         <button className="relative p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors">
           <Bell className="w-5 h-5" />
@@ -29,11 +42,11 @@ export default function Header() {
         </button>
 
         {/* Profile */}
-        <div className="flex items-center gap-3 pl-4 border-l border-gray-200">
+        <div className="flex items-center gap-2 md:gap-3 pl-2 md:pl-4 border-l border-gray-200">
           <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
             <User className="w-4 h-4 text-white" />
           </div>
-          <div className="hidden sm:block">
+          <div className="hidden md:block">
             <p className="text-sm font-medium text-gray-900">
               {user?.email?.split('@')[0] || 'User'}
             </p>

@@ -1,0 +1,313 @@
+'use client';
+
+import { useState, useEffect, useCallback } from 'react';
+import { supabase } from '@/lib/supabase';
+import type { Invoice } from '@/types/database';
+
+interface UseInvoicesReturn {
+  invoices: Invoice[];
+  isLoading: boolean;
+  error: string | null;
+  refresh: () => Promise<void>;
+  createInvoice: (invoice: Partial<Invoice>) => Promise<Invoice | null>;
+  updateInvoice: (id: string, updates: Partial<Invoice>) => Promise<Invoice | null>;
+  deleteInvoice: (id: string) => Promise<boolean>;
+  getInvoice: (id: string) => Promise<Invoice | null>;
+  generateInvoiceNumber: () => string;
+}
+
+// Demo invoices
+const demoInvoices: Invoice[] = [
+  {
+    id: 'inv-1',
+    user_id: 'demo',
+    job_id: 'demo-3',
+    client_name: 'Tom Smith',
+    client_email: 'tom@example.com',
+    invoice_number: 'INV-2024-001',
+    status: 'paid',
+    subtotal: 1800,
+    tax_rate: 0,
+    tax_amount: 0,
+    total: 1800,
+    due_date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    sent_at: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
+    paid_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+    notes: 'Thank you for your business!',
+    created_at: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'inv-2',
+    user_id: 'demo',
+    job_id: 'demo-1',
+    client_name: 'Mike Johnson',
+    client_email: 'mike@example.com',
+    invoice_number: 'INV-2024-002',
+    status: 'sent',
+    subtotal: 3200,
+    tax_rate: 0,
+    tax_amount: 0,
+    total: 3200,
+    due_date: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    sent_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+    paid_at: null,
+    notes: 'Driveway sealcoating complete',
+    created_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'inv-3',
+    user_id: 'demo',
+    job_id: 'demo-5',
+    client_name: 'Riverfront HOA',
+    client_email: 'hoa@riverfront.com',
+    invoice_number: 'INV-2024-003',
+    status: 'sent',
+    subtotal: 9000,
+    tax_rate: 0,
+    tax_amount: 0,
+    total: 9000,
+    due_date: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    sent_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+    paid_at: null,
+    notes: 'Phase 1 - 50% deposit',
+    created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'inv-4',
+    user_id: 'demo',
+    job_id: 'demo-2',
+    client_name: 'ABC Corporation',
+    client_email: 'billing@abccorp.com',
+    invoice_number: 'INV-2024-004',
+    status: 'draft',
+    subtotal: 12500,
+    tax_rate: 0,
+    tax_amount: 0,
+    total: 12500,
+    due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    sent_at: null,
+    paid_at: null,
+    notes: null,
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: 'inv-5',
+    user_id: 'demo',
+    job_id: null,
+    client_name: 'Previous Client',
+    client_email: 'old@client.com',
+    invoice_number: 'INV-2023-089',
+    status: 'overdue',
+    subtotal: 2500,
+    tax_rate: 0,
+    tax_amount: 0,
+    total: 2500,
+    due_date: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    sent_at: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString(),
+    paid_at: null,
+    notes: 'Follow up required',
+    created_at: new Date(Date.now() - 50 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+];
+
+export function useInvoices(userId: string | undefined): UseInvoicesReturn {
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isDemo, setIsDemo] = useState(false);
+
+  const generateInvoiceNumber = useCallback(() => {
+    const year = new Date().getFullYear();
+    const count = invoices.length + 1;
+    return `INV-${year}-${count.toString().padStart(3, '0')}`;
+  }, [invoices.length]);
+
+  const fetchInvoices = useCallback(async () => {
+    if (!userId) {
+      setInvoices(demoInvoices);
+      setIsDemo(true);
+      setIsLoading(false);
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const { data, error: fetchError } = await supabase
+        .from('invoices')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+
+      if (fetchError) {
+        console.error('Invoices fetch error:', fetchError);
+        setInvoices(demoInvoices);
+        setIsDemo(true);
+      } else if (data && data.length > 0) {
+        setInvoices(data);
+        setIsDemo(false);
+      } else {
+        setInvoices(demoInvoices);
+        setIsDemo(true);
+      }
+    } catch (err) {
+      console.error('Invoices fetch error:', err);
+      setError('Failed to load invoices');
+      setInvoices(demoInvoices);
+      setIsDemo(true);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [userId]);
+
+  const createInvoice = async (invoiceData: Partial<Invoice>): Promise<Invoice | null> => {
+    if (!userId || isDemo) {
+      const newInvoice: Invoice = {
+        id: `inv-${Date.now()}`,
+        user_id: userId || 'demo',
+        job_id: invoiceData.job_id || null,
+        client_name: invoiceData.client_name || null,
+        client_email: invoiceData.client_email || null,
+        invoice_number: invoiceData.invoice_number || generateInvoiceNumber(),
+        status: invoiceData.status || 'draft',
+        subtotal: invoiceData.subtotal || 0,
+        tax_rate: invoiceData.tax_rate || 0,
+        tax_amount: invoiceData.tax_amount || 0,
+        total: invoiceData.total || 0,
+        due_date: invoiceData.due_date || null,
+        sent_at: invoiceData.sent_at || null,
+        paid_at: invoiceData.paid_at || null,
+        notes: invoiceData.notes || null,
+        created_at: new Date().toISOString(),
+      };
+      setInvoices(prev => [newInvoice, ...prev]);
+      return newInvoice;
+    }
+
+    try {
+      const { data, error: insertError } = await supabase
+        .from('invoices')
+        .insert({
+          user_id: userId,
+          job_id: invoiceData.job_id,
+          client_name: invoiceData.client_name,
+          client_email: invoiceData.client_email,
+          invoice_number: invoiceData.invoice_number || generateInvoiceNumber(),
+          status: invoiceData.status || 'draft',
+          subtotal: invoiceData.subtotal || 0,
+          tax_rate: invoiceData.tax_rate || 0,
+          tax_amount: invoiceData.tax_amount || 0,
+          total: invoiceData.total || 0,
+          due_date: invoiceData.due_date,
+          notes: invoiceData.notes,
+        })
+        .select()
+        .single();
+
+      if (insertError) throw insertError;
+
+      if (data) {
+        setInvoices(prev => [data, ...prev]);
+        return data;
+      }
+      return null;
+    } catch (err) {
+      console.error('Create invoice error:', err);
+      setError('Failed to create invoice');
+      return null;
+    }
+  };
+
+  const updateInvoice = async (id: string, updates: Partial<Invoice>): Promise<Invoice | null> => {
+    if (isDemo || id.startsWith('inv-')) {
+      setInvoices(prev => prev.map(inv =>
+        inv.id === id ? { ...inv, ...updates } : inv
+      ));
+      return invoices.find(i => i.id === id) || null;
+    }
+
+    try {
+      const { data, error: updateError } = await supabase
+        .from('invoices')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (updateError) throw updateError;
+
+      if (data) {
+        setInvoices(prev => prev.map(inv => inv.id === id ? data : inv));
+        return data;
+      }
+      return null;
+    } catch (err) {
+      console.error('Update invoice error:', err);
+      setError('Failed to update invoice');
+      return null;
+    }
+  };
+
+  const deleteInvoice = async (id: string): Promise<boolean> => {
+    if (isDemo || id.startsWith('inv-')) {
+      setInvoices(prev => prev.filter(inv => inv.id !== id));
+      return true;
+    }
+
+    try {
+      const { error: deleteError } = await supabase
+        .from('invoices')
+        .delete()
+        .eq('id', id);
+
+      if (deleteError) throw deleteError;
+
+      setInvoices(prev => prev.filter(inv => inv.id !== id));
+      return true;
+    } catch (err) {
+      console.error('Delete invoice error:', err);
+      setError('Failed to delete invoice');
+      return false;
+    }
+  };
+
+  const getInvoice = async (id: string): Promise<Invoice | null> => {
+    const localInvoice = invoices.find(i => i.id === id);
+    if (localInvoice) return localInvoice;
+
+    if (isDemo || id.startsWith('inv-')) {
+      return demoInvoices.find(i => i.id === id) || null;
+    }
+
+    try {
+      const { data, error: fetchError } = await supabase
+        .from('invoices')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (fetchError) throw fetchError;
+      return data;
+    } catch (err) {
+      console.error('Get invoice error:', err);
+      return null;
+    }
+  };
+
+  useEffect(() => {
+    fetchInvoices();
+  }, [fetchInvoices]);
+
+  return {
+    invoices,
+    isLoading,
+    error,
+    refresh: fetchInvoices,
+    createInvoice,
+    updateInvoice,
+    deleteInvoice,
+    getInvoice,
+    generateInvoiceNumber,
+  };
+}

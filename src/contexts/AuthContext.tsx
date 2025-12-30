@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import type { User } from '@supabase/supabase-js';
@@ -8,24 +8,65 @@ import type { User } from '@supabase/supabase-js';
 interface AuthContextType {
   user: User | null;
   loading: boolean;
+  isEmbedded: boolean;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const PUBLIC_ROUTES = ['/login', '/register', '/forgot-password', '/'];
+// Routes that don't require authentication
+const PUBLIC_ROUTES = ['/', '/login', '/register', '/forgot-password', '/pricing', '/auth/callback'];
+
+// Allowed parent origins for postMessage auth (embedded mode)
+const ALLOWED_PARENT_ORIGINS = [
+  'https://sealn-super-site.vercel.app',
+  'https://bytes-super-site.vercel.app',
+  'http://localhost:3000',
+  'http://localhost:3001',
+];
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const authProcessed = useRef(false);
   const router = useRouter();
   const pathname = usePathname();
+
+  // Check if running in embedded mode
+  const isEmbedded = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('embedded') === 'true';
+
+  // Authenticate using token from parent
+  const authenticateWithToken = useCallback(async (token: string) => {
+    try {
+      const { data, error } = await supabase.auth.setSession({
+        access_token: token,
+        refresh_token: '',
+      });
+
+      if (error) {
+        console.error('Token auth failed:', error.message);
+        return false;
+      }
+
+      if (data.user) {
+        setUser(data.user);
+        return true;
+      }
+
+      return false;
+    } catch (error) {
+      console.error('Token auth error:', error);
+      return false;
+    }
+  }, []);
 
   const refreshUser = useCallback(async () => {
     try {
       const { data: { user: currentUser }, error } = await supabase.auth.getUser();
+
       if (error) {
+        console.error('Failed to get user:', error.message);
         setUser(null);
       } else {
         setUser(currentUser);
@@ -38,32 +79,97 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  // Handle postMessage auth from parent window
   useEffect(() => {
-    refreshUser();
+    if (!isEmbedded) return;
 
+    const handleMessage = async (event: MessageEvent) => {
+      // Validate origin
+      if (!ALLOWED_PARENT_ORIGINS.includes(event.origin)) {
+        return;
+      }
+
+      // Handle auth token from parent
+      if (event.data?.type === 'AUTH_TOKEN' && !authProcessed.current) {
+        authProcessed.current = true;
+        const success = await authenticateWithToken(event.data.token);
+        if (success) {
+          // Confirm auth to parent
+          window.parent.postMessage({ type: 'AUTH_CONFIRMED' }, event.origin);
+          setLoading(false);
+        } else {
+          await refreshUser();
+        }
+      }
+
+      // Handle token refresh
+      if (event.data?.type === 'AUTH_TOKEN_REFRESH') {
+        await authenticateWithToken(event.data.token);
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+
+    // Signal to parent that we're ready for auth
+    if (window.parent !== window) {
+      window.parent.postMessage({ type: 'EMBEDDED_APP_READY' }, '*');
+    }
+
+    return () => window.removeEventListener('message', handleMessage);
+  }, [isEmbedded, authenticateWithToken, refreshUser]);
+
+  // Handle initial authentication (non-embedded or fallback)
+  useEffect(() => {
+    const initAuth = async () => {
+      if (isEmbedded) {
+        // In embedded mode, wait for postMessage auth
+        // Set a timeout to fall back to session check if no message received
+        const timeout = setTimeout(async () => {
+          if (!authProcessed.current) {
+            await refreshUser();
+          }
+        }, 3000);
+        return () => clearTimeout(timeout);
+      } else {
+        // Normal session check for standalone mode
+        await refreshUser();
+      }
+    };
+
+    initAuth();
+
+    // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
-      setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
-  }, [refreshUser]);
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [isEmbedded, refreshUser]);
 
-  // Redirect to login if not authenticated
+  // Redirect to login if not authenticated and on protected route
+  // Skip redirect when embedded in another app
   useEffect(() => {
-    if (!loading && !user && !PUBLIC_ROUTES.includes(pathname)) {
+    if (!loading && !user && !PUBLIC_ROUTES.includes(pathname) && !isEmbedded) {
       router.push('/login');
     }
-  }, [user, loading, pathname, router]);
+  }, [user, loading, pathname, router, isEmbedded]);
 
-  const logout = async () => {
-    await supabase.auth.signOut();
-    setUser(null);
-    router.push('/login');
+  const logout = async (): Promise<void> => {
+    try {
+      await supabase.auth.signOut();
+      setUser(null);
+      if (!isEmbedded) {
+        router.push('/login');
+      }
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, logout, refreshUser }}>
+    <AuthContext.Provider value={{ user, loading, isEmbedded, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );
@@ -71,8 +177,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 export function useAuth() {
   const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within AuthProvider');
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
 }

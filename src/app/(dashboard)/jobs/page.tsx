@@ -1,119 +1,386 @@
 'use client';
 
-import { useState } from 'react';
-import { Plus, Search, Filter, MoreVertical, MapPin, Calendar, DollarSign } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useAuth } from '@/contexts/AuthContext';
 
-export default function JobsPage() {
-  const [filter, setFilter] = useState('all');
+import ProtectedRoute from '@/components/ProtectedRoute';
 
-  const jobs = [
-    { id: 1, name: 'Johnson Residence - Driveway Seal', customer: 'Mike Johnson', address: '123 Oak St, Springfield', status: 'in_progress', value: 3200, cost: 2310, date: '2024-12-28' },
-    { id: 2, name: 'ABC Corp Parking Lot', customer: 'ABC Corporation', address: '500 Business Park Dr', status: 'scheduled', value: 12500, cost: 0, date: '2025-01-05' },
-    { id: 3, name: 'Smith Property Striping', customer: 'Tom Smith', address: '789 Elm Ave', status: 'completed', value: 1800, cost: 1180, date: '2024-12-20' },
-    { id: 4, name: 'City Mall - Section B', customer: 'City Mall LLC', address: '100 Mall Way', status: 'estimate', value: 8500, cost: 0, date: '2024-12-30' },
-  ];
+type Job = {
+  id: string;
+  name: string;
+  client_name: string | null;
+  status: string | null;
+  created_at: string;
+  industry_name?: string | null;
+  industries?: { name: string }[] | null;
+};
 
-  const getStatusBadge = (status: string) => {
-    const styles: Record<string, string> = {
-      estimate: 'bg-gray-100 text-gray-700',
-      scheduled: 'bg-yellow-100 text-yellow-700',
-      in_progress: 'bg-blue-100 text-blue-700',
-      completed: 'bg-green-100 text-green-700',
-    };
-    const labels: Record<string, string> = {
-      estimate: 'Estimate',
-      scheduled: 'Scheduled',
-      in_progress: 'In Progress',
-      completed: 'Completed',
-    };
-    return <span className={`px-2 py-1 rounded-full text-xs font-medium ${styles[status]}`}>{labels[status]}</span>;
-  };
+type Industry = { id: string; name: string };
 
-  const filteredJobs = filter === 'all' ? jobs : jobs.filter(j => j.status === filter);
+function JobsPageContent() {
+  const { user } = useAuth();
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const [name, setName] = useState('');
+  const [clientName, setClientName] = useState('');
+  const [status, setStatus] = useState('active');
+  const [industries, setIndustries] = useState<Industry[]>([]);
+  const [industryId, setIndustryId] = useState('');
+  // Roofing-specific fields
+  const [propertyAddress, setPropertyAddress] = useState('');
+  const [structureType, setStructureType] = useState('');
+  const [roofType, setRoofType] = useState('');
+  const [roofPitch, setRoofPitch] = useState('');
+  const [layers, setLayers] = useState('');
+  const [squares, setSquares] = useState('');
+  const [dumpsterSize, setDumpsterSize] = useState('');
+  const [dumpsterHauler, setDumpsterHauler] = useState('');
+
+  useEffect(() => {
+    if (user) {
+      void loadData();
+    }
+  }, [user]);
+
+  async function loadData() {
+    setLoading(true);
+    setError(null);
+
+    try {
+      // Load industries
+      const indRes = await fetch('/api/industries');
+      const indData = await indRes.json();
+      if (indData.success) {
+        setIndustries(indData.data || []);
+      }
+
+      // Load jobs
+      const jobRes = await fetch(`/api/jobs?user_id=${user?.id}`);
+      const jobData = await jobRes.json();
+      if (jobData.success) {
+        setJobs(jobData.data || []);
+      } else {
+        setError(jobData.error || 'Failed to load jobs');
+      }
+    } catch (err) {
+      console.error('Error loading data:', err);
+      setError('Failed to load data');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleCreateJob(e: React.FormEvent) {
+    e.preventDefault();
+    if (!name.trim() || !user) return;
+
+    setError(null);
+
+    try {
+      const res = await fetch('/api/jobs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: user.id,
+          name: name.trim(),
+          client_name: clientName.trim() || null,
+          status: status || 'active',
+          industry_id: industryId || null,
+          property_address: propertyAddress || null,
+          structure_type: structureType || null,
+          roof_type: roofType || null,
+          roof_pitch: roofPitch || null,
+          layers: layers ? Number(layers) : null,
+          measured_squares: squares ? Number(squares) : null,
+          dumpster_size: dumpsterSize || null,
+          dumpster_hauler: dumpsterHauler || null,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        // Reset form
+        setName('');
+        setClientName('');
+        setStatus('active');
+        setIndustryId('');
+        setPropertyAddress('');
+        setStructureType('');
+        setRoofType('');
+        setRoofPitch('');
+        setLayers('');
+        setSquares('');
+        setDumpsterSize('');
+        setDumpsterHauler('');
+        await loadData();
+      } else {
+        setError(data.error || 'Failed to create job');
+      }
+    } catch (err) {
+      console.error('Error creating job:', err);
+      setError('Failed to create job');
+    }
+  }
+
+  const selectedIndustry = industries.find(i => i.id === industryId);
+  const isRoofing = selectedIndustry?.name === 'Roofing';
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Jobs</h1>
-          <p className="text-gray-600">Manage your jobs and track profitability</p>
-        </div>
-        <Link
-          href="/jobs/new"
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg font-medium flex items-center gap-2"
-        >
-          <Plus className="w-4 h-4" /> New Job
-        </Link>
-      </div>
+    <div className="min-h-screen bg-gray-50">
+      
 
-      {/* Filters */}
-      <div className="flex items-center gap-4">
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Search jobs..."
-            className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-        <div className="flex items-center gap-2 bg-gray-100 p-1 rounded-lg">
-          {['all', 'estimate', 'scheduled', 'in_progress', 'completed'].map((f) => (
-            <button
-              key={f}
-              onClick={() => setFilter(f)}
-              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                filter === f ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              {f === 'all' ? 'All' : f.charAt(0).toUpperCase() + f.slice(1).replace('_', ' ')}
-            </button>
-          ))}
-        </div>
-      </div>
+      <main className="max-w-6xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
+        <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Jobs</h1>
+            <p className="text-sm text-gray-600 mt-1">
+              Create jobs and link expenses and time entries to track true job cost.
+            </p>
+          </div>
 
-      {/* Jobs List */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        <div className="divide-y divide-gray-100">
-          {filteredJobs.map((job) => (
-            <Link key={job.id} href={`/jobs/${job.id}`} className="block hover:bg-gray-50 transition-colors">
-              <div className="p-5">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3">
-                      <h3 className="font-semibold text-gray-900">{job.name}</h3>
-                      {getStatusBadge(job.status)}
-                    </div>
-                    <p className="text-gray-600 mt-1">{job.customer}</p>
-                    <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
-                      <span className="flex items-center gap-1">
-                        <MapPin className="w-4 h-4" /> {job.address}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Calendar className="w-4 h-4" /> {new Date(job.date).toLocaleDateString()}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-lg font-semibold text-gray-900">${job.value.toLocaleString()}</p>
-                    {job.cost > 0 && (
-                      <p className="text-sm text-green-600 font-medium">
-                        +${(job.value - job.cost).toLocaleString()} profit
-                      </p>
-                    )}
-                    {job.cost > 0 && (
-                      <p className="text-xs text-gray-500">
-                        {Math.round(((job.value - job.cost) / job.value) * 100)}% margin
-                      </p>
-                    )}
-                  </div>
+          <Link
+            href="/"
+            className="text-sm text-blue-600 hover:text-blue-700 font-semibold"
+          >
+            ← Back to Dashboard
+          </Link>
+        </div>
+
+        {error && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+            {error}
+            <button onClick={() => setError(null)} className="ml-2 underline">Dismiss</button>
+          </div>
+        )}
+
+        {/* Add Job form */}
+        <section className="bg-white rounded-lg shadow p-5 mb-8">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Add Job</h2>
+
+          <form onSubmit={handleCreateJob} className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="md:col-span-1">
+              <label className="block text-sm font-medium mb-1">Job Name *</label>
+              <input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                placeholder="e.g., Smith Driveway Resurface"
+              />
+            </div>
+
+            <div className="md:col-span-1">
+              <label className="block text-sm font-medium mb-1">Client Name</label>
+              <input
+                value={clientName}
+                onChange={(e) => setClientName(e.target.value)}
+                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                placeholder="e.g., John Smith"
+              />
+            </div>
+
+            <div className="md:col-span-1">
+              <label className="block text-sm font-medium mb-1">Status</label>
+              <select
+                value={status}
+                onChange={(e) => setStatus(e.target.value)}
+                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="planned">Planned</option>
+                <option value="active">Active</option>
+                <option value="completed">Completed</option>
+              </select>
+            </div>
+
+            <div className="md:col-span-1">
+              <label className="block text-sm font-medium mb-1">Industry</label>
+              <select
+                value={industryId}
+                onChange={(e) => setIndustryId(e.target.value)}
+                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">Select industry</option>
+                {industries.map((i) => (
+                  <option key={i.id} value={i.id}>{i.name}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Roofing-specific quick fields */}
+            {isRoofing && (
+              <>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium mb-1">Property Address</label>
+                  <input
+                    value={propertyAddress}
+                    onChange={(e) => setPropertyAddress(e.target.value)}
+                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                    placeholder="123 Main St, City, ST"
+                  />
                 </div>
-              </div>
-            </Link>
-          ))}
-        </div>
-      </div>
+                <div className="md:col-span-1">
+                  <label className="block text-sm font-medium mb-1">Structure Type</label>
+                  <input
+                    value={structureType}
+                    onChange={(e) => setStructureType(e.target.value)}
+                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                    placeholder="House / Multi-family / Commercial"
+                  />
+                </div>
+                <div className="md:col-span-1">
+                  <label className="block text-sm font-medium mb-1">Roof Type</label>
+                  <input
+                    value={roofType}
+                    onChange={(e) => setRoofType(e.target.value)}
+                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                    placeholder="Shingle / Metal / Tile / Flat"
+                  />
+                </div>
+                <div className="md:col-span-1">
+                  <label className="block text-sm font-medium mb-1">Roof Pitch</label>
+                  <input
+                    value={roofPitch}
+                    onChange={(e) => setRoofPitch(e.target.value)}
+                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                    placeholder="e.g., 6/12"
+                  />
+                </div>
+                <div className="md:col-span-1">
+                  <label className="block text-sm font-medium mb-1">Layers</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={layers}
+                    onChange={(e) => setLayers(e.target.value)}
+                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                    placeholder="e.g., 1"
+                  />
+                </div>
+                <div className="md:col-span-1">
+                  <label className="block text-sm font-medium mb-1">Measured Squares</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={squares}
+                    onChange={(e) => setSquares(e.target.value)}
+                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                    placeholder="e.g., 28.5"
+                  />
+                </div>
+                <div className="md:col-span-1">
+                  <label className="block text-sm font-medium mb-1">Dumpster Size</label>
+                  <input
+                    value={dumpsterSize}
+                    onChange={(e) => setDumpsterSize(e.target.value)}
+                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                    placeholder="e.g., 20 yd"
+                  />
+                </div>
+                <div className="md:col-span-1">
+                  <label className="block text-sm font-medium mb-1">Hauler</label>
+                  <input
+                    value={dumpsterHauler}
+                    onChange={(e) => setDumpsterHauler(e.target.value)}
+                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                    placeholder="Company name"
+                  />
+                </div>
+              </>
+            )}
+
+            <div className="md:col-span-4 flex justify-end">
+              <button
+                type="submit"
+                className="px-5 py-2.5 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700"
+              >
+                Save Job
+              </button>
+            </div>
+          </form>
+        </section>
+
+        {/* Jobs list */}
+        <section className="bg-white rounded-lg shadow overflow-hidden">
+          <div className="px-4 py-3 border-b flex justify-between items-center">
+            <h2 className="font-semibold text-gray-900">All Jobs ({jobs.length})</h2>
+            {loading && <p className="text-xs text-gray-500">Loading...</p>}
+          </div>
+
+          {jobs.length === 0 && !loading ? (
+            <div className="p-6 text-sm text-gray-500">
+              No jobs yet. Add your first job above to start tracking expenses by job.
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 border-b">
+                  <tr>
+                    <th className="px-4 py-2 text-left text-gray-600 font-medium">Job</th>
+                    <th className="px-4 py-2 text-left text-gray-600 font-medium">Client</th>
+                    <th className="px-4 py-2 text-left text-gray-600 font-medium">Industry</th>
+                    <th className="px-4 py-2 text-left text-gray-600 font-medium">Status</th>
+                    <th className="px-4 py-2 text-left text-gray-600 font-medium">Created</th>
+                    <th className="px-4 py-2 text-right text-gray-600 font-medium">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {jobs.map((job, idx) => (
+                    <tr
+                      key={job.id}
+                      className={`border-t ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/40'}`}
+                    >
+                      <td className="px-4 py-2 font-medium text-gray-900">{job.name}</td>
+                      <td className="px-4 py-2 text-gray-700">
+                        {job.client_name || '—'}
+                      </td>
+                      <td className="px-4 py-2 text-gray-700">
+                        {job.industry_name || (job.industries && job.industries[0]?.name) || '—'}
+                      </td>
+                      <td className="px-4 py-2 capitalize">
+                        <span
+                          className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
+                            job.status === 'completed'
+                              ? 'bg-green-100 text-green-800'
+                              : job.status === 'planned'
+                              ? 'bg-yellow-100 text-yellow-800'
+                              : 'bg-blue-100 text-blue-800'
+                          }`}
+                        >
+                          {job.status || 'active'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-2 text-gray-600">
+                        {new Date(job.created_at).toLocaleDateString()}
+                      </td>
+                      <td className="px-4 py-2 text-right">
+                        <Link
+                          href={`/jobs/${job.id}`}
+                          className="text-blue-600 hover:text-blue-800 text-sm font-semibold"
+                        >
+                          View Details
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+      </main>
     </div>
+  );
+}
+
+export default function JobsPage() {
+  return (
+    <ProtectedRoute>
+      <JobsPageContent />
+    </ProtectedRoute>
   );
 }

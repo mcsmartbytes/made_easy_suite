@@ -28,34 +28,34 @@ export default function LandingPage() {
       </header>
 
       {/* Hero */}
-      <section className="container mx-auto px-6 py-20 text-center">
-        <div className="inline-flex items-center gap-2 bg-blue-500/10 border border-blue-500/20 rounded-full px-4 py-1.5 mb-6">
-          <Zap className="w-4 h-4 text-blue-400" />
-          <span className="text-blue-400 text-sm font-medium">The QuoteIQ Alternative Built for Contractors</span>
+      <section className="container mx-auto px-4 md:px-6 py-10 md:py-20 text-center">
+        <div className="inline-flex items-center gap-2 bg-blue-500/10 border border-blue-500/20 rounded-full px-3 md:px-4 py-1.5 mb-4 md:mb-6">
+          <Zap className="w-3 h-3 md:w-4 md:h-4 text-blue-400" />
+          <span className="text-blue-400 text-xs md:text-sm font-medium">All-in-One Business Management for Contractors</span>
         </div>
 
-        <h1 className="text-5xl md:text-6xl font-bold text-white mb-6 leading-tight">
+        <h1 className="text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-bold text-white mb-4 md:mb-6 leading-tight">
           Everything Your Business Needs,<br />
           <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
             Made Easy
           </span>
         </h1>
 
-        <p className="text-xl text-slate-400 mb-10 max-w-2xl mx-auto">
+        <p className="text-sm md:text-xl text-slate-400 mb-6 md:mb-10 max-w-2xl mx-auto px-2">
           Jobs, CRM, Expenses, Invoicing, Estimates, and Real-Time Profit Tracking —
           all in one powerful platform designed for contractors and service businesses.
         </p>
 
-        <div className="flex items-center justify-center gap-4">
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 md:gap-4">
           <Link
             href="/register"
-            className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-xl text-lg font-semibold transition-colors flex items-center gap-2"
+            className="bg-blue-600 hover:bg-blue-700 text-white px-6 md:px-8 py-3 md:py-4 rounded-xl text-base md:text-lg font-semibold transition-colors flex items-center gap-2 w-full sm:w-auto justify-center"
           >
-            Start Free Trial <ArrowRight className="w-5 h-5" />
+            Start Free Trial <ArrowRight className="w-4 h-4 md:w-5 md:h-5" />
           </Link>
           <Link
             href="#features"
-            className="border border-slate-600 hover:border-slate-500 text-white px-8 py-4 rounded-xl text-lg font-semibold transition-colors"
+            className="border border-slate-600 hover:border-slate-500 text-white px-6 md:px-8 py-3 md:py-4 rounded-xl text-base md:text-lg font-semibold transition-colors w-full sm:w-auto text-center"
           >
             See Features
           </Link>
@@ -63,9 +63,9 @@ export default function LandingPage() {
       </section>
 
       {/* Features Grid */}
-      <section id="features" className="container mx-auto px-6 py-20">
-        <h2 className="text-3xl font-bold text-white text-center mb-4">All Your Business Tools in One Place</h2>
-        <p className="text-slate-400 text-center mb-12 max-w-xl mx-auto">
+      <section id="features" className="container mx-auto px-4 md:px-6 py-10 md:py-20">
+        <h2 className="text-xl md:text-3xl font-bold text-white text-center mb-2 md:mb-4">All Your Business Tools in One Place</h2>
+        <p className="text-slate-400 text-center mb-6 md:mb-12 max-w-xl mx-auto text-sm md:text-base">
           Stop juggling multiple apps. Made Easy Suite brings everything together.
         </p>
 
@@ -90,36 +90,35 @@ export default function LandingPage() {
       </section>
 
       {/* Differentiator */}
-      <section className="container mx-auto px-6 py-20">
-        <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-3xl p-10 md:p-16 text-center">
-          <Shield className="w-16 h-16 text-white/80 mx-auto mb-6" />
-          <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-            Unlike the Competition, We Show You Profit — Not Just Revenue
+      <section className="container mx-auto px-4 md:px-6 py-10 md:py-20">
+        <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl md:rounded-3xl p-6 md:p-16 text-center">
+          <Shield className="w-10 h-10 md:w-16 md:h-16 text-white/80 mx-auto mb-4 md:mb-6" />
+          <h2 className="text-xl md:text-3xl lg:text-4xl font-bold text-white mb-3 md:mb-4">
+            We Show You Profit — Not Just Revenue
           </h2>
-          <p className="text-xl text-white/80 max-w-2xl mx-auto mb-8">
-            Most job management tools tell you what you billed. Made Easy Suite shows you what you actually made,
-            with live job costing that updates as expenses come in.
+          <p className="text-sm md:text-xl text-white/80 max-w-2xl mx-auto mb-6 md:mb-8">
+            Most tools tell you what you billed. We show you what you actually made.
           </p>
           <Link
             href="/register"
-            className="inline-flex items-center gap-2 bg-white text-blue-600 px-8 py-4 rounded-xl text-lg font-semibold hover:bg-slate-100 transition-colors"
+            className="inline-flex items-center gap-2 bg-white text-blue-600 px-6 md:px-8 py-3 md:py-4 rounded-xl text-base md:text-lg font-semibold hover:bg-slate-100 transition-colors"
           >
-            See It In Action <ArrowRight className="w-5 h-5" />
+            See It In Action <ArrowRight className="w-4 h-4 md:w-5 md:h-5" />
           </Link>
         </div>
       </section>
 
       {/* CTA */}
-      <section className="container mx-auto px-6 py-20 text-center">
-        <h2 className="text-3xl font-bold text-white mb-4">Ready to Run Your Business the Easy Way?</h2>
-        <p className="text-slate-400 mb-8 max-w-xl mx-auto">
-          Join contractors who switched from spreadsheets and outdated software to Made Easy Suite.
+      <section className="container mx-auto px-4 md:px-6 py-10 md:py-20 text-center">
+        <h2 className="text-xl md:text-3xl font-bold text-white mb-3 md:mb-4">Ready to Run Your Business the Easy Way?</h2>
+        <p className="text-slate-400 mb-6 md:mb-8 max-w-xl mx-auto text-sm md:text-base">
+          Join contractors who switched from spreadsheets and outdated software.
         </p>
         <Link
           href="/register"
-          className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-xl text-lg font-semibold transition-colors inline-flex items-center gap-2"
+          className="bg-blue-600 hover:bg-blue-700 text-white px-6 md:px-8 py-3 md:py-4 rounded-xl text-base md:text-lg font-semibold transition-colors inline-flex items-center gap-2"
         >
-          Start Your Free Trial <ArrowRight className="w-5 h-5" />
+          Start Your Free Trial <ArrowRight className="w-4 h-4 md:w-5 md:h-5" />
         </Link>
       </section>
 

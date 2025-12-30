@@ -19,12 +19,18 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
-      router.push('/dashboard');
+
+      if (data.user) {
+        // Force navigation with window.location for reliability
+        window.location.href = '/dashboard';
+      } else {
+        setError('Login failed - no user returned');
+        setLoading(false);
+      }
     } catch (err: any) {
       setError(err.message || 'Login failed');
-    } finally {
       setLoading(false);
     }
   };
