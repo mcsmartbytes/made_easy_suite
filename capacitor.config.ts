@@ -1,13 +1,16 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
+// Set your deployed URL here (e.g., 'https://made-easy-suite.vercel.app')
+const PRODUCTION_URL = process.env.CAPACITOR_SERVER_URL || 'https://made-easy-suite.vercel.app';
+
 const config: CapacitorConfig = {
   appId: 'com.mcsmart.madeeasy.suite',
   appName: 'Made Easy Suite',
   webDir: 'out',
   server: {
-    // For development, you can point to your local server
-    // url: 'http://localhost:3000',
-    // For production, the app loads from the bundled files
+    // Point to deployed server (API routes don't work with static export)
+    url: PRODUCTION_URL,
+    cleartext: false,
     androidScheme: 'https',
   },
   plugins: {
