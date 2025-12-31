@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/utils/supabaseAdmin';
+import { getTurso, generateId } from '@/lib/turso';
 
 // GET /api/invoices - List all invoices
 // GET /api/invoices?id=xxx - Get single invoice with items
@@ -8,45 +8,54 @@ export async function GET(request: NextRequest) {
   const userId = searchParams.get('user_id');
   const invoiceId = searchParams.get('id');
   const status = searchParams.get('status');
-  const customerId = searchParams.get('customer_id');
 
   if (!userId) {
     return NextResponse.json({ error: 'user_id is required' }, { status: 400 });
   }
 
   try {
-    if (invoiceId) {
-      // Get single invoice with items and customer
-      const { data, error } = await supabaseAdmin
-        .from('invoices')
-        .select('*, customers(id, name, email, company), invoice_items(*)')
-        .eq('id', invoiceId)
-        .eq('user_id', userId)
-        .single();
+    const client = getTurso();
 
-      if (error) throw error;
-      return NextResponse.json({ success: true, data });
+    if (invoiceId) {
+      // Get single invoice
+      const result = await client.execute({
+        sql: `SELECT * FROM invoices WHERE id = ? AND user_id = ?`,
+        args: [invoiceId, userId],
+      });
+
+      if (result.rows.length === 0) {
+        return NextResponse.json({ error: 'Invoice not found' }, { status: 404 });
+      }
+
+      // Get invoice items
+      const itemsResult = await client.execute({
+        sql: `SELECT * FROM invoice_items WHERE invoice_id = ? ORDER BY sort_order`,
+        args: [invoiceId],
+      });
+
+      const invoice = {
+        ...result.rows[0],
+        invoice_items: itemsResult.rows,
+      };
+
+      return NextResponse.json({ success: true, data: invoice });
     }
 
     // Build query for listing
-    let query = supabaseAdmin
-      .from('invoices')
-      .select('*, customers(id, name, email, company)')
-      .eq('user_id', userId);
+    let sql = `SELECT * FROM invoices WHERE user_id = ?`;
+    const args: (string | null)[] = [userId];
 
     if (status) {
-      query = query.eq('status', status);
+      sql += ' AND status = ?';
+      args.push(status);
     }
 
-    if (customerId) {
-      query = query.eq('customer_id', customerId);
-    }
+    sql += ' ORDER BY created_at DESC';
 
-    const { data, error } = await query.order('issue_date', { ascending: false });
+    const result = await client.execute({ sql, args });
 
-    if (error) throw error;
-    return NextResponse.json({ success: true, data });
-  } catch (error) {
+    return NextResponse.json({ success: true, data: result.rows });
+  } catch (error: any) {
     console.error('Error fetching invoices:', error);
     return NextResponse.json({ error: 'Failed to fetch invoices' }, { status: 500 });
   }
@@ -56,70 +65,98 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { user_id, customer_id, invoice_number, due_date, items, tax_rate, notes, terms } = body;
+    const {
+      user_id,
+      job_id,
+      client_name,
+      client_email,
+      invoice_number,
+      due_date,
+      items,
+      tax_rate,
+      notes,
+      status = 'draft',
+      subtotal = 0,
+      tax_amount = 0,
+      total = 0,
+    } = body;
 
-    if (!user_id || !invoice_number || !due_date) {
-      return NextResponse.json({ error: 'user_id, invoice_number, and due_date are required' }, { status: 400 });
+    if (!user_id) {
+      return NextResponse.json({ error: 'user_id is required' }, { status: 400 });
     }
 
-    // Calculate totals
-    const subtotal = (items || []).reduce((sum: number, item: any) => sum + (item.quantity * item.rate), 0);
-    const taxAmount = subtotal * ((tax_rate || 0) / 100);
-    const total = subtotal + taxAmount;
+    const client = getTurso();
+    const id = generateId();
+    const invoiceNum = invoice_number || `INV-${new Date().getFullYear()}-${Date.now().toString().slice(-6)}`;
+
+    // Calculate totals from items if provided
+    let calcSubtotal = subtotal;
+    let calcTaxAmount = tax_amount;
+    let calcTotal = total;
+
+    if (items && items.length > 0) {
+      calcSubtotal = items.reduce((sum: number, item: any) => sum + (item.quantity * item.rate), 0);
+      calcTaxAmount = calcSubtotal * ((tax_rate || 0) / 100);
+      calcTotal = calcSubtotal + calcTaxAmount;
+    }
 
     // Create invoice
-    const { data: invoice, error: invoiceError } = await supabaseAdmin
-      .from('invoices')
-      .insert({
+    await client.execute({
+      sql: `
+        INSERT INTO invoices (
+          id, user_id, job_id, client_name, client_email, invoice_number,
+          status, subtotal, tax_rate, tax_amount, total, due_date, notes, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+      `,
+      args: [
+        id,
         user_id,
-        customer_id,
-        invoice_number,
-        due_date,
-        subtotal,
-        tax_rate: tax_rate || 0,
-        tax_amount: taxAmount,
-        total,
-        notes,
-        terms,
-        status: 'draft',
-      })
-      .select()
-      .single();
+        job_id || null,
+        client_name || null,
+        client_email || null,
+        invoiceNum,
+        status,
+        calcSubtotal,
+        tax_rate || 0,
+        calcTaxAmount,
+        calcTotal,
+        due_date || null,
+        notes || null,
+      ],
+    });
 
-    if (invoiceError) throw invoiceError;
-
-    // Create invoice items
+    // Create invoice items if provided
     if (items && items.length > 0) {
-      const invoiceItems = items.map((item: any, index: number) => ({
-        invoice_id: invoice.id,
-        description: item.description,
-        quantity: item.quantity || 1,
-        rate: item.rate || 0,
-        amount: (item.quantity || 1) * (item.rate || 0),
-        account_id: item.account_id,
-        sort_order: index,
-      }));
-
-      const { error: itemsError } = await supabaseAdmin
-        .from('invoice_items')
-        .insert(invoiceItems);
-
-      if (itemsError) throw itemsError;
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        const itemId = generateId();
+        await client.execute({
+          sql: `
+            INSERT INTO invoice_items (id, invoice_id, description, quantity, unit_price, total, sort_order, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
+          `,
+          args: [
+            itemId,
+            id,
+            item.description || '',
+            item.quantity || 1,
+            item.rate || item.unit_price || 0,
+            (item.quantity || 1) * (item.rate || item.unit_price || 0),
+            i,
+          ],
+        });
+      }
     }
 
-    // Return invoice with items
-    const { data: fullInvoice } = await supabaseAdmin
-      .from('invoices')
-      .select('*, customers(id, name, email, company), invoice_items(*)')
-      .eq('id', invoice.id)
-      .single();
+    // Fetch the created invoice
+    const result = await client.execute({
+      sql: `SELECT * FROM invoices WHERE id = ?`,
+      args: [id],
+    });
 
-    return NextResponse.json({ success: true, data: fullInvoice }, { status: 201 });
+    return NextResponse.json({ success: true, data: result.rows[0] }, { status: 201 });
   } catch (error: any) {
     console.error('Error creating invoice:', error);
-    if (error.code === '23505') {
-      return NextResponse.json({ error: 'Invoice number already exists' }, { status: 400 });
-    }
     return NextResponse.json({ error: 'Failed to create invoice' }, { status: 500 });
   }
 }
@@ -130,91 +167,117 @@ export async function PUT(request: NextRequest) {
     const body = await request.json();
     const { id, user_id, items, ...updates } = body;
 
-    if (!id || !user_id) {
-      return NextResponse.json({ error: 'id and user_id are required' }, { status: 400 });
+    if (!id) {
+      return NextResponse.json({ error: 'id is required' }, { status: 400 });
+    }
+
+    const client = getTurso();
+
+    // Build dynamic update query
+    const allowedFields = [
+      'job_id', 'client_name', 'client_email', 'invoice_number',
+      'status', 'subtotal', 'tax_rate', 'tax_amount', 'total',
+      'due_date', 'sent_at', 'paid_at', 'notes',
+    ];
+
+    const fields: string[] = [];
+    const values: (string | number | null)[] = [];
+
+    for (const [key, value] of Object.entries(updates)) {
+      if (allowedFields.includes(key)) {
+        fields.push(`${key} = ?`);
+        values.push(value as string | number | null);
+      }
     }
 
     // Recalculate totals if items provided
     if (items) {
-      const subtotal = items.reduce((sum: number, item: any) => sum + (item.quantity * item.rate), 0);
-      const taxAmount = subtotal * ((updates.tax_rate || 0) / 100);
-      updates.subtotal = subtotal;
-      updates.tax_amount = taxAmount;
-      updates.total = subtotal + taxAmount;
+      const subtotal = items.reduce((sum: number, item: any) => sum + (item.quantity * (item.rate || item.unit_price || 0)), 0);
+      const taxRate = updates.tax_rate ?? 0;
+      const taxAmount = subtotal * (taxRate / 100);
+      const total = subtotal + taxAmount;
+
+      fields.push('subtotal = ?', 'tax_amount = ?', 'total = ?');
+      values.push(subtotal, taxAmount, total);
     }
 
-    // Update invoice
-    const { data: _invoice, error: invoiceError } = await supabaseAdmin
-      .from('invoices')
-      .update(updates)
-      .eq('id', id)
-      .eq('user_id', user_id)
-      .select()
-      .single();
-
-    if (invoiceError) throw invoiceError;
+    if (fields.length > 0) {
+      values.push(id);
+      await client.execute({
+        sql: `UPDATE invoices SET ${fields.join(', ')} WHERE id = ?`,
+        args: values,
+      });
+    }
 
     // Update items if provided
     if (items) {
       // Delete existing items
-      await supabaseAdmin
-        .from('invoice_items')
-        .delete()
-        .eq('invoice_id', id);
+      await client.execute({
+        sql: 'DELETE FROM invoice_items WHERE invoice_id = ?',
+        args: [id],
+      });
 
       // Insert new items
-      if (items.length > 0) {
-        const invoiceItems = items.map((item: any, index: number) => ({
-          invoice_id: id,
-          description: item.description,
-          quantity: item.quantity || 1,
-          rate: item.rate || 0,
-          amount: (item.quantity || 1) * (item.rate || 0),
-          account_id: item.account_id,
-          sort_order: index,
-        }));
-
-        await supabaseAdmin
-          .from('invoice_items')
-          .insert(invoiceItems);
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        const itemId = generateId();
+        await client.execute({
+          sql: `
+            INSERT INTO invoice_items (id, invoice_id, description, quantity, unit_price, total, sort_order, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
+          `,
+          args: [
+            itemId,
+            id,
+            item.description || '',
+            item.quantity || 1,
+            item.rate || item.unit_price || 0,
+            (item.quantity || 1) * (item.rate || item.unit_price || 0),
+            i,
+          ],
+        });
       }
     }
 
-    // Return updated invoice with items
-    const { data: fullInvoice } = await supabaseAdmin
-      .from('invoices')
-      .select('*, customers(id, name, email, company), invoice_items(*)')
-      .eq('id', id)
-      .single();
+    // Fetch updated invoice
+    const result = await client.execute({
+      sql: `SELECT * FROM invoices WHERE id = ?`,
+      args: [id],
+    });
 
-    return NextResponse.json({ success: true, data: fullInvoice });
-  } catch (error) {
+    return NextResponse.json({ success: true, data: result.rows[0] });
+  } catch (error: any) {
     console.error('Error updating invoice:', error);
     return NextResponse.json({ error: 'Failed to update invoice' }, { status: 500 });
   }
 }
 
-// DELETE /api/invoices?id=xxx&user_id=xxx
+// DELETE /api/invoices?id=xxx
 export async function DELETE(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const id = searchParams.get('id');
-  const userId = searchParams.get('user_id');
 
-  if (!id || !userId) {
-    return NextResponse.json({ error: 'id and user_id are required' }, { status: 400 });
+  if (!id) {
+    return NextResponse.json({ error: 'id is required' }, { status: 400 });
   }
 
   try {
-    // Delete invoice (cascade will delete items)
-    const { error } = await supabaseAdmin
-      .from('invoices')
-      .delete()
-      .eq('id', id)
-      .eq('user_id', userId);
+    const client = getTurso();
 
-    if (error) throw error;
+    // Delete invoice items first
+    await client.execute({
+      sql: 'DELETE FROM invoice_items WHERE invoice_id = ?',
+      args: [id],
+    });
+
+    // Delete invoice
+    await client.execute({
+      sql: 'DELETE FROM invoices WHERE id = ?',
+      args: [id],
+    });
+
     return NextResponse.json({ success: true });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error deleting invoice:', error);
     return NextResponse.json({ error: 'Failed to delete invoice' }, { status: 500 });
   }

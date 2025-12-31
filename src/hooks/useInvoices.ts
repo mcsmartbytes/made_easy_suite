@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/lib/supabase';
 import type { Invoice } from '@/types/database';
 
 interface UseInvoicesReturn {
@@ -134,18 +133,11 @@ export function useInvoices(userId: string | undefined): UseInvoicesReturn {
     setError(null);
 
     try {
-      const { data, error: fetchError } = await supabase
-        .from('invoices')
-        .select('*')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false });
+      const res = await fetch(`/api/invoices?user_id=${userId}`);
+      const result = await res.json();
 
-      if (fetchError) {
-        console.error('Invoices fetch error:', fetchError);
-        setInvoices(demoInvoices);
-        setIsDemo(true);
-      } else if (data && data.length > 0) {
-        setInvoices(data);
+      if (result.success && result.data && result.data.length > 0) {
+        setInvoices(result.data);
         setIsDemo(false);
       } else {
         setInvoices(demoInvoices);
@@ -186,9 +178,10 @@ export function useInvoices(userId: string | undefined): UseInvoicesReturn {
     }
 
     try {
-      const { data, error: insertError } = await supabase
-        .from('invoices')
-        .insert({
+      const res = await fetch('/api/invoices', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
           user_id: userId,
           job_id: invoiceData.job_id,
           client_name: invoiceData.client_name,
@@ -201,17 +194,15 @@ export function useInvoices(userId: string | undefined): UseInvoicesReturn {
           total: invoiceData.total || 0,
           due_date: invoiceData.due_date,
           notes: invoiceData.notes,
-        })
-        .select()
-        .single();
+        }),
+      });
+      const result = await res.json();
 
-      if (insertError) throw insertError;
-
-      if (data) {
-        setInvoices(prev => [data, ...prev]);
-        return data;
+      if (result.success && result.data) {
+        setInvoices(prev => [result.data, ...prev]);
+        return result.data;
       }
-      return null;
+      throw new Error(result.error || 'Failed to create invoice');
     } catch (err) {
       console.error('Create invoice error:', err);
       setError('Failed to create invoice');
@@ -228,20 +219,18 @@ export function useInvoices(userId: string | undefined): UseInvoicesReturn {
     }
 
     try {
-      const { data, error: updateError } = await supabase
-        .from('invoices')
-        .update(updates)
-        .eq('id', id)
-        .select()
-        .single();
+      const res = await fetch('/api/invoices', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, ...updates }),
+      });
+      const result = await res.json();
 
-      if (updateError) throw updateError;
-
-      if (data) {
-        setInvoices(prev => prev.map(inv => inv.id === id ? data : inv));
-        return data;
+      if (result.success && result.data) {
+        setInvoices(prev => prev.map(inv => inv.id === id ? result.data : inv));
+        return result.data;
       }
-      return null;
+      throw new Error(result.error || 'Failed to update invoice');
     } catch (err) {
       console.error('Update invoice error:', err);
       setError('Failed to update invoice');
@@ -256,15 +245,16 @@ export function useInvoices(userId: string | undefined): UseInvoicesReturn {
     }
 
     try {
-      const { error: deleteError } = await supabase
-        .from('invoices')
-        .delete()
-        .eq('id', id);
+      const res = await fetch(`/api/invoices?id=${id}`, {
+        method: 'DELETE',
+      });
+      const result = await res.json();
 
-      if (deleteError) throw deleteError;
-
-      setInvoices(prev => prev.filter(inv => inv.id !== id));
-      return true;
+      if (result.success) {
+        setInvoices(prev => prev.filter(inv => inv.id !== id));
+        return true;
+      }
+      throw new Error(result.error || 'Failed to delete invoice');
     } catch (err) {
       console.error('Delete invoice error:', err);
       setError('Failed to delete invoice');
@@ -281,14 +271,13 @@ export function useInvoices(userId: string | undefined): UseInvoicesReturn {
     }
 
     try {
-      const { data, error: fetchError } = await supabase
-        .from('invoices')
-        .select('*')
-        .eq('id', id)
-        .single();
+      const res = await fetch(`/api/invoices?id=${id}&user_id=${userId}`);
+      const result = await res.json();
 
-      if (fetchError) throw fetchError;
-      return data;
+      if (result.success && result.data) {
+        return result.data;
+      }
+      return null;
     } catch (err) {
       console.error('Get invoice error:', err);
       return null;
