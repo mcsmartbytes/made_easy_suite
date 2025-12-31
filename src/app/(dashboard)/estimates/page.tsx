@@ -96,8 +96,8 @@ export default function EstimatesPage() {
   };
 
   const filteredEstimates = estimates.filter(estimate => {
-    const matchesSearch = estimate.estimate_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      estimate.customer_name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = (estimate.estimate_number || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (estimate.customer_name || '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || estimate.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
@@ -227,12 +227,12 @@ export default function EstimatesPage() {
                         {estimate.estimate_number}
                       </Link>
                     </td>
-                    <td className="text-corporate-slate">{estimate.customer_name}</td>
+                    <td className="text-corporate-slate">{estimate.customer_name || '-'}</td>
                     <td className="text-corporate-slate">
-                      {new Date(estimate.issue_date).toLocaleDateString()}
+                      {estimate.issue_date ? new Date(estimate.issue_date).toLocaleDateString() : '-'}
                     </td>
                     <td className="text-corporate-slate">
-                      {new Date(estimate.expiry_date).toLocaleDateString()}
+                      {estimate.expiry_date ? new Date(estimate.expiry_date).toLocaleDateString() : '-'}
                     </td>
                     <td>{getStatusBadge(estimate.status)}</td>
                     <td className="text-right font-semibold text-corporate-dark">
