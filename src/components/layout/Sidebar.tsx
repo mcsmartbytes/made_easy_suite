@@ -1,8 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { useState } from 'react';
+import { usePathname, useSearchParams } from 'next/navigation';
+import { useState, useEffect } from 'react';
 import {
   LayoutDashboard,
   Receipt,
@@ -29,16 +29,20 @@ import {
   PiggyBank,
   CreditCard,
   UserCircle,
-  Target
+  Target,
+  Presentation
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface NavSection {
   title: string;
   items: { name: string; href: string; icon: React.ElementType }[];
+  demoOnly?: boolean; // Show only in demo/presentation mode
+  hideInDemo?: boolean; // Hide in demo/presentation mode
 }
 
-const navSections: NavSection[] = [
+// Full navigation for regular use
+const fullNavSections: NavSection[] = [
   {
     title: 'Overview',
     items: [
@@ -59,6 +63,7 @@ const navSections: NavSection[] = [
   },
   {
     title: 'Team & Subs',
+    hideInDemo: true,
     items: [
       { name: 'Crew', href: '/crew', icon: Users },
       { name: 'Subcontractors', href: '/subcontractors', icon: Handshake },
@@ -76,6 +81,7 @@ const navSections: NavSection[] = [
   },
   {
     title: 'Expenses',
+    hideInDemo: true,
     items: [
       { name: 'All Expenses', href: '/expenses', icon: Receipt },
       { name: 'Mileage', href: '/mileage', icon: Car },
@@ -98,6 +104,37 @@ const navSections: NavSection[] = [
   },
 ];
 
+// Streamlined navigation for demo/presentation mode - focused on commercial contractors
+const demoNavSections: NavSection[] = [
+  {
+    title: 'Overview',
+    items: [
+      { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+    ],
+  },
+  {
+    title: 'Job Costing',
+    items: [
+      { name: 'Area Bid Calculator', href: '/area-bid', icon: Calculator },
+      { name: 'Jobs', href: '/jobs', icon: Briefcase },
+      { name: 'Estimates', href: '/estimates', icon: FileSpreadsheet },
+    ],
+  },
+  {
+    title: 'Clients',
+    items: [
+      { name: 'Companies', href: '/companies', icon: Building2 },
+      { name: 'Contacts', href: '/contacts', icon: UserCircle },
+    ],
+  },
+  {
+    title: 'Billing',
+    items: [
+      { name: 'Invoices', href: '/invoices', icon: FileText },
+    ],
+  },
+];
+
 interface SidebarProps {
   onClose?: () => void;
 }
@@ -105,7 +142,22 @@ interface SidebarProps {
 export default function Sidebar({ onClose }: SidebarProps) {
   const pathname = usePathname();
   const { logout } = useAuth();
-  const [expandedSections, setExpandedSections] = useState<string[]>(['Overview', 'Job Costing', 'Team & Subs', 'CRM', 'Expenses', 'Accounting']);
+  const [demoMode, setDemoMode] = useState(false);
+  const [expandedSections, setExpandedSections] = useState<string[]>(['Overview', 'Job Costing', 'Clients', 'Billing', 'Team & Subs', 'CRM', 'Expenses', 'Accounting']);
+
+  // Check for demo mode on mount
+  useEffect(() => {
+    const isDemoMode = localStorage.getItem('presentationMode') === 'true';
+    setDemoMode(isDemoMode);
+  }, []);
+
+  const toggleDemoMode = () => {
+    const newMode = !demoMode;
+    setDemoMode(newMode);
+    localStorage.setItem('presentationMode', newMode.toString());
+  };
+
+  const navSections = demoMode ? demoNavSections : fullNavSections;
 
   const toggleSection = (title: string) => {
     setExpandedSections(prev =>
@@ -194,6 +246,20 @@ export default function Sidebar({ onClose }: SidebarProps) {
 
       {/* Bottom section */}
       <div className="px-2 py-3 border-t border-slate-800 space-y-1">
+        {/* Presentation Mode Toggle */}
+        <button
+          onClick={toggleDemoMode}
+          className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
+            demoMode
+              ? 'bg-amber-600/20 text-amber-400 hover:bg-amber-600/30'
+              : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+          }`}
+          title={demoMode ? 'Exit Presentation Mode' : 'Enter Presentation Mode'}
+        >
+          <Presentation className="w-4 h-4" />
+          <span>{demoMode ? 'Demo Mode ON' : 'Presentation'}</span>
+        </button>
+
         <Link
           href="/settings"
           onClick={handleLinkClick}
