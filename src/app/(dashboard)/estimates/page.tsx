@@ -2,50 +2,64 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { supabase } from '@/utils/supabase';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface Estimate {
   id: string;
-  estimate_number: string;
-  customer_id: string;
-  customer_name: string;
+  estimate_number?: string;
+  title?: string;
+  customer_id?: string;
+  customer_name?: string;
+  contact_id?: string;
   status: 'draft' | 'sent' | 'accepted' | 'declined' | 'expired' | 'converted';
-  issue_date: string;
-  expiry_date: string;
+  issue_date?: string;
+  estimate_date?: string;
+  expiry_date?: string;
+  valid_until?: string;
   subtotal: number;
   tax_amount: number;
   total: number;
+  contacts?: { first_name?: string; last_name?: string; email?: string } | null;
+  jobs?: { name?: string } | null;
 }
 
 export default function EstimatesPage() {
+  const { user } = useAuth();
   const [estimates, setEstimates] = useState<Estimate[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
 
   useEffect(() => {
-    loadEstimates();
-  }, []);
+    if (user?.id) {
+      loadEstimates();
+    }
+  }, [user?.id]);
 
   const loadEstimates = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return;
+    if (!user?.id) return;
 
-    const { data: estimatesData, error } = await supabase
-      .from('estimates')
-      .select(`
-        *,
-        customers (name)
-      `)
-      .eq('user_id', session.user.id)
-      .order('created_at', { ascending: false });
+    try {
+      const res = await fetch(`/api/estimates?user_id=${user.id}`);
+      const result = await res.json();
 
-    if (!error && estimatesData) {
-      const mapped = estimatesData.map(est => ({
-        ...est,
-        customer_name: est.customers?.name || 'No Customer'
-      }));
-      setEstimates(mapped);
+      if (result.success && result.data) {
+        const mapped = result.data.map((est: any) => ({
+          ...est,
+          estimate_number: est.title || `EST-${est.id.slice(0, 8).toUpperCase()}`,
+          customer_name: est.contacts
+            ? `${est.contacts.first_name || ''} ${est.contacts.last_name || ''}`.trim() || 'No Contact'
+            : est.jobs?.name || 'No Customer',
+          issue_date: est.estimate_date || est.created_at,
+          expiry_date: est.valid_until,
+          subtotal: est.subtotal || 0,
+          tax_amount: est.tax_amount || 0,
+          total: est.total || 0,
+        }));
+        setEstimates(mapped);
+      }
+    } catch (error) {
+      console.error('Error loading estimates:', error);
     }
     setLoading(false);
   };
