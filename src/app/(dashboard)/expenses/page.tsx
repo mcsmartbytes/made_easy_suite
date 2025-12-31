@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import LearningPromptModal from '@/components/LearningPromptModal';
 import { supabase } from '@/utils/supabase';
+import { useAuth } from '@/contexts/AuthContext';
 import {
   detectCorrection,
   buildLearningSuggestion,
@@ -44,6 +45,7 @@ interface Job {
 }
 
 export default function ExpensesPage() {
+  const { user } = useAuth();
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -83,20 +85,15 @@ export default function ExpensesPage() {
   } | null>(null);
   const [showLearningModal, setShowLearningModal] = useState(false);
   const [learningSuggestion, setLearningSuggestion] = useState<LearningSuggestion | null>(null);
-  const [userId, setUserId] = useState<string | null>(null);
+  const userId = user?.id || null;
 
   useEffect(() => {
-    // Get user ID for learning system
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user) setUserId(user.id);
-    });
-  }, []);
-
-  useEffect(() => {
-    loadExpenses();
-    loadCategories();
-    loadJobs();
-  }, []);
+    if (user?.id) {
+      loadExpenses();
+      loadCategories();
+      loadJobs();
+    }
+  }, [user?.id]);
 
   async function loadCategories() {
     try {
@@ -222,60 +219,50 @@ export default function ExpensesPage() {
   }
 
   async function loadJobs() {
+    if (!user?.id) return;
     try {
-      const { data, error } = await supabase
-        .from('jobs')
-        .select('id, name')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setJobs(data || []);
+      const res = await fetch(`/api/jobs?user_id=${user.id}`);
+      const result = await res.json();
+      if (result.success && result.data) {
+        setJobs(result.data.map((j: any) => ({ id: j.id, name: j.name })));
+      }
     } catch (error) {
       console.error('Error loading jobs:', error);
     }
   }
 
   async function loadExpenses() {
+    if (!user?.id) {
+      setLoading(false);
+      return;
+    }
+
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const res = await fetch(`/api/expenses?user_id=${user.id}`);
+      const result = await res.json();
 
-      if (!user) {
-        setLoading(false);
-        return;
+      if (result.success && result.data) {
+        const formattedExpenses: Expense[] = result.data.map((exp: any) => ({
+          id: exp.id,
+          amount: exp.amount,
+          description: exp.description,
+          date: exp.date,
+          vendor: exp.vendor,
+          is_business: exp.is_business,
+          payment_method: exp.payment_method,
+          notes: exp.notes,
+          category_id: exp.category_id,
+          po_number: exp.po_number ?? null,
+          job_id: exp.job_id,
+          category: exp.category_name ? {
+            name: exp.category_name,
+            icon: exp.category_icon || '📁',
+            color: exp.category_color || '#6366F1',
+          } : null,
+          job_name: exp.job_name ?? null,
+        }));
+        setExpenses(formattedExpenses);
       }
-
-      const { data, error } = await supabase
-        .from('expenses')
-        .select(
-          `
-            id,
-            amount,
-            description,
-            date,
-            vendor,
-            is_business,
-            payment_method,
-            notes,
-            category_id,
-            po_number,
-            job_id,
-            categories(name, icon, color),
-            jobs(name)
-          `
-        )
-        .eq('user_id', user.id)
-        .order('date', { ascending: false });
-
-      if (error) throw error;
-
-      const formattedExpenses: Expense[] = (data || []).map((exp: any) => ({
-        ...exp,
-        category: exp.categories || null,
-        job_name: exp.jobs?.name ?? null,
-        po_number: exp.po_number ?? null,
-      }));
-
-      setExpenses(formattedExpenses);
     } catch (error) {
       console.error('Error loading expenses:', error);
     } finally {
