@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { supabase } from '@/utils/supabase';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface Customer {
   id: string;
@@ -19,6 +19,7 @@ interface Customer {
 }
 
 export default function CustomersPage() {
+  const { user } = useAuth();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -37,55 +38,59 @@ export default function CustomersPage() {
   });
 
   useEffect(() => {
-    loadCustomers();
-  }, []);
+    if (user?.id) {
+      loadCustomers();
+    }
+  }, [user?.id]);
 
   const loadCustomers = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return;
+    if (!user?.id) return;
 
-    const { data, error } = await supabase
-      .from('customers')
-      .select('*')
-      .eq('user_id', session.user.id)
-      .order('name');
+    try {
+      const res = await fetch(`/api/customers?user_id=${user.id}`);
+      const result = await res.json();
 
-    if (!error && data) {
-      setCustomers(data);
+      if (result.success && result.data) {
+        setCustomers(result.data);
+      }
+    } catch (error) {
+      console.error('Error loading customers:', error);
     }
     setLoading(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return;
+    if (!user?.id) return;
 
-    if (editingCustomer) {
-      const { error } = await supabase
-        .from('customers')
-        .update(formData)
-        .eq('id', editingCustomer.id);
+    try {
+      if (editingCustomer) {
+        const res = await fetch('/api/customers', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: editingCustomer.id, ...formData }),
+        });
+        const result = await res.json();
 
-      if (!error) {
-        setCustomers(customers.map(c =>
-          c.id === editingCustomer.id ? { ...c, ...formData } : c
-        ));
+        if (result.success) {
+          setCustomers(customers.map(c =>
+            c.id === editingCustomer.id ? { ...c, ...formData } : c
+          ));
+        }
+      } else {
+        const res = await fetch('/api/customers', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id: user.id, ...formData, balance: 0 }),
+        });
+        const result = await res.json();
+
+        if (result.success && result.data) {
+          setCustomers([result.data, ...customers].sort((a, b) => a.name.localeCompare(b.name)));
+        }
       }
-    } else {
-      const { data, error } = await supabase
-        .from('customers')
-        .insert({
-          user_id: session.user.id,
-          ...formData,
-          balance: 0,
-        })
-        .select()
-        .single();
-
-      if (!error && data) {
-        setCustomers([data, ...customers].sort((a, b) => a.name.localeCompare(b.name)));
-      }
+    } catch (error) {
+      console.error('Error saving customer:', error);
     }
     closeModal();
   };
@@ -137,13 +142,17 @@ export default function CustomersPage() {
   const deleteCustomer = async (id: string) => {
     if (!confirm('Are you sure you want to delete this customer?')) return;
 
-    const { error } = await supabase
-      .from('customers')
-      .delete()
-      .eq('id', id);
+    try {
+      const res = await fetch(`/api/customers?id=${id}`, {
+        method: 'DELETE',
+      });
+      const result = await res.json();
 
-    if (!error) {
-      setCustomers(customers.filter(c => c.id !== id));
+      if (result.success) {
+        setCustomers(customers.filter(c => c.id !== id));
+      }
+    } catch (error) {
+      console.error('Error deleting customer:', error);
     }
   };
 

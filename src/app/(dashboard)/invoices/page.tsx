@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { supabase } from '@/utils/supabase';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface Invoice {
   id: string;
@@ -14,6 +14,8 @@ interface Invoice {
   status: 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled';
   issue_date: string;
   due_date: string;
+  client_name?: string;
+  client_email?: string;
   customers?: {
     name: string;
     email: string;
@@ -25,41 +27,38 @@ interface Invoice {
 }
 
 export default function InvoicesPage() {
+  const { user } = useAuth();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
 
   useEffect(() => {
-    loadInvoices();
-  }, []);
+    if (user?.id) {
+      loadInvoices();
+    }
+  }, [user?.id]);
 
   const loadInvoices = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return;
+    if (!user?.id) return;
 
-    const { data, error } = await supabase
-      .from('invoices')
-      .select(`
-        *,
-        customers (name, email),
-        jobs (job_number, name)
-      `)
-      .eq('user_id', session.user.id)
-      .order('created_at', { ascending: false });
+    try {
+      const res = await fetch(`/api/invoices?user_id=${user.id}`);
+      const result = await res.json();
 
-    if (error) {
+      if (result.success && result.data) {
+        // Update status to overdue if past due date and not paid
+        const today = new Date().toISOString().split('T')[0];
+        const updatedInvoices = result.data.map((inv: Invoice) => {
+          if ((inv.status === 'sent') && inv.due_date && inv.due_date < today) {
+            return { ...inv, status: 'overdue' as const };
+          }
+          return inv;
+        });
+        setInvoices(updatedInvoices);
+      }
+    } catch (error) {
       console.error('Error loading invoices:', error);
-    } else {
-      // Update status to overdue if past due date and not paid
-      const today = new Date().toISOString().split('T')[0];
-      const updatedInvoices = (data || []).map(inv => {
-        if ((inv.status === 'sent') && inv.due_date < today) {
-          return { ...inv, status: 'overdue' as const };
-        }
-        return inv;
-      });
-      setInvoices(updatedInvoices);
     }
     setLoading(false);
   };
@@ -87,13 +86,13 @@ export default function InvoicesPage() {
   };
 
   const filteredInvoices = invoices.filter(invoice => {
-    const customerData = invoice.customers as { name: string; email: string } | null;
+    const customerName = invoice.client_name || invoice.customers?.name || '';
     const jobData = invoice.jobs as { job_number: string; name: string } | null;
 
     const matchesSearch =
-      invoice.invoice_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      customerData?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      jobData?.name?.toLowerCase().includes(searchTerm.toLowerCase());
+      (invoice.invoice_number || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (jobData?.name || '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || invoice.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
@@ -229,7 +228,8 @@ export default function InvoicesPage() {
                 </tr>
               ) : (
                 filteredInvoices.map((invoice) => {
-                  const customerData = invoice.customers as { name: string; email: string } | null;
+                  const customerName = invoice.client_name || invoice.customers?.name || 'Unknown';
+                  const customerEmail = invoice.client_email || invoice.customers?.email || '';
                   const jobData = invoice.jobs as { job_number: string; name: string } | null;
 
                   return (
@@ -240,8 +240,8 @@ export default function InvoicesPage() {
                         </Link>
                       </td>
                       <td>
-                        <p className="font-medium text-corporate-dark">{customerData?.name || 'Unknown'}</p>
-                        <p className="text-xs text-corporate-gray">{customerData?.email || ''}</p>
+                        <p className="font-medium text-corporate-dark">{customerName}</p>
+                        <p className="text-xs text-corporate-gray">{customerEmail}</p>
                       </td>
                       <td>
                         {jobData ? (

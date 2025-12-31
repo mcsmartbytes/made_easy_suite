@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { supabase } from '@/utils/supabase';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface Vendor {
   id: string;
@@ -20,6 +20,7 @@ interface Vendor {
 }
 
 export default function VendorsPage() {
+  const { user } = useAuth();
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -39,55 +40,59 @@ export default function VendorsPage() {
   });
 
   useEffect(() => {
-    loadVendors();
-  }, []);
+    if (user?.id) {
+      loadVendors();
+    }
+  }, [user?.id]);
 
   const loadVendors = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return;
+    if (!user?.id) return;
 
-    const { data, error } = await supabase
-      .from('vendors')
-      .select('*')
-      .eq('user_id', session.user.id)
-      .order('name');
+    try {
+      const res = await fetch(`/api/vendors?user_id=${user.id}`);
+      const result = await res.json();
 
-    if (!error && data) {
-      setVendors(data);
+      if (result.success && result.data) {
+        setVendors(result.data);
+      }
+    } catch (error) {
+      console.error('Error loading vendors:', error);
     }
     setLoading(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return;
+    if (!user?.id) return;
 
-    if (editingVendor) {
-      const { error } = await supabase
-        .from('vendors')
-        .update(formData)
-        .eq('id', editingVendor.id);
+    try {
+      if (editingVendor) {
+        const res = await fetch('/api/vendors', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: editingVendor.id, ...formData }),
+        });
+        const result = await res.json();
 
-      if (!error) {
-        setVendors(vendors.map(v =>
-          v.id === editingVendor.id ? { ...v, ...formData } : v
-        ));
+        if (result.success) {
+          setVendors(vendors.map(v =>
+            v.id === editingVendor.id ? { ...v, ...formData } : v
+          ));
+        }
+      } else {
+        const res = await fetch('/api/vendors', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id: user.id, ...formData, balance: 0 }),
+        });
+        const result = await res.json();
+
+        if (result.success && result.data) {
+          setVendors([result.data, ...vendors].sort((a, b) => a.name.localeCompare(b.name)));
+        }
       }
-    } else {
-      const { data, error } = await supabase
-        .from('vendors')
-        .insert({
-          user_id: session.user.id,
-          ...formData,
-          balance: 0,
-        })
-        .select()
-        .single();
-
-      if (!error && data) {
-        setVendors([data, ...vendors].sort((a, b) => a.name.localeCompare(b.name)));
-      }
+    } catch (error) {
+      console.error('Error saving vendor:', error);
     }
     closeModal();
   };
@@ -142,13 +147,17 @@ export default function VendorsPage() {
   const deleteVendor = async (id: string) => {
     if (!confirm('Are you sure you want to delete this vendor?')) return;
 
-    const { error } = await supabase
-      .from('vendors')
-      .delete()
-      .eq('id', id);
+    try {
+      const res = await fetch(`/api/vendors?id=${id}`, {
+        method: 'DELETE',
+      });
+      const result = await res.json();
 
-    if (!error) {
-      setVendors(vendors.filter(v => v.id !== id));
+      if (result.success) {
+        setVendors(vendors.filter(v => v.id !== id));
+      }
+    } catch (error) {
+      console.error('Error deleting vendor:', error);
     }
   };
 

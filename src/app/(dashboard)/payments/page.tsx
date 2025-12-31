@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { supabase } from '@/utils/supabase';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface Payment {
   id: string;
@@ -20,37 +20,30 @@ interface Payment {
 }
 
 export default function PaymentsPage() {
+  const { user } = useAuth();
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState<'all' | 'received' | 'made'>('all');
 
   useEffect(() => {
-    loadPayments();
-  }, []);
+    if (user?.id) {
+      loadPayments();
+    }
+  }, [user?.id]);
 
   const loadPayments = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return;
+    if (!user?.id) return;
 
-    const { data: paymentsData, error } = await supabase
-      .from('payments')
-      .select(`
-        *,
-        invoices (invoice_number, customers (name)),
-        bills (bill_number, vendors (name))
-      `)
-      .eq('user_id', session.user.id)
-      .order('payment_date', { ascending: false });
+    try {
+      const res = await fetch(`/api/payments?user_id=${user.id}`);
+      const result = await res.json();
 
-    if (!error && paymentsData) {
-      const mapped = paymentsData.map(p => ({
-        ...p,
-        customer_name: p.invoices?.customers?.name || null,
-        vendor_name: p.bills?.vendors?.name || null,
-        document_number: p.invoices?.invoice_number || p.bills?.bill_number || null,
-      }));
-      setPayments(mapped);
+      if (result.success && result.data) {
+        setPayments(result.data);
+      }
+    } catch (error) {
+      console.error('Error loading payments:', error);
     }
     setLoading(false);
   };

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { supabase } from '@/utils/supabase';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface Bill {
   id: string;
@@ -17,28 +17,41 @@ interface Bill {
 }
 
 export default function BillsPage() {
+  const { user } = useAuth();
   const [bills, setBills] = useState<Bill[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
 
   useEffect(() => {
-    loadBills();
-  }, []);
+    if (user?.id) {
+      loadBills();
+    }
+  }, [user?.id]);
 
   const loadBills = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return;
+    if (!user?.id) return;
 
-    // Mock data
-    const mockBills: Bill[] = [
-      { id: '1', bill_number: 'BILL-001', vendor_name: 'Office Supplies Co', vendor_email: 'orders@officesupplies.com', amount: 450.00, status: 'unpaid', bill_date: '2024-12-01', due_date: '2024-12-15', category: 'Office Expenses' },
-      { id: '2', bill_number: 'BILL-002', vendor_name: 'Cloud Services Inc', vendor_email: 'billing@cloudservices.com', amount: 1200.00, status: 'unpaid', bill_date: '2024-11-25', due_date: '2024-12-10', category: 'Software' },
-      { id: '3', bill_number: 'BILL-003', vendor_name: 'Marketing Agency Pro', vendor_email: 'accounts@marketingpro.com', amount: 5500.00, status: 'overdue', bill_date: '2024-11-01', due_date: '2024-11-15', category: 'Marketing' },
-      { id: '4', bill_number: 'BILL-004', vendor_name: 'Insurance Partners', vendor_email: 'premiums@insurancepartners.com', amount: 2800.00, status: 'paid', bill_date: '2024-11-20', due_date: '2024-12-05', category: 'Insurance' },
-      { id: '5', bill_number: 'BILL-005', vendor_name: 'Utility Company', vendor_email: 'business@utilityco.com', amount: 350.00, status: 'draft', bill_date: '2024-12-02', due_date: '2024-12-20', category: 'Utilities' },
-    ];
-    setBills(mockBills);
+    try {
+      const res = await fetch(`/api/bills?user_id=${user.id}`);
+      const result = await res.json();
+
+      if (result.success && result.data) {
+        setBills(result.data);
+      } else {
+        // Use mock data if no bills in database
+        const mockBills: Bill[] = [
+          { id: '1', bill_number: 'BILL-001', vendor_name: 'Office Supplies Co', vendor_email: 'orders@officesupplies.com', amount: 450.00, status: 'unpaid', bill_date: '2024-12-01', due_date: '2024-12-15', category: 'Office Expenses' },
+          { id: '2', bill_number: 'BILL-002', vendor_name: 'Cloud Services Inc', vendor_email: 'billing@cloudservices.com', amount: 1200.00, status: 'unpaid', bill_date: '2024-11-25', due_date: '2024-12-10', category: 'Software' },
+          { id: '3', bill_number: 'BILL-003', vendor_name: 'Marketing Agency Pro', vendor_email: 'accounts@marketingpro.com', amount: 5500.00, status: 'overdue', bill_date: '2024-11-01', due_date: '2024-11-15', category: 'Marketing' },
+          { id: '4', bill_number: 'BILL-004', vendor_name: 'Insurance Partners', vendor_email: 'premiums@insurancepartners.com', amount: 2800.00, status: 'paid', bill_date: '2024-11-20', due_date: '2024-12-05', category: 'Insurance' },
+          { id: '5', bill_number: 'BILL-005', vendor_name: 'Utility Company', vendor_email: 'business@utilityco.com', amount: 350.00, status: 'draft', bill_date: '2024-12-02', due_date: '2024-12-20', category: 'Utilities' },
+        ];
+        setBills(mockBills);
+      }
+    } catch (error) {
+      console.error('Error loading bills:', error);
+    }
     setLoading(false);
   };
 
