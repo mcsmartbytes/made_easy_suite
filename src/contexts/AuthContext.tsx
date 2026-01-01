@@ -17,7 +17,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // Routes that don't require authentication
-const PUBLIC_ROUTES = ['/', '/login', '/register', '/forgot-password', '/pricing', '/auth/callback'];
+const PUBLIC_ROUTES = ['/', '/login', '/register', '/forgot-password', '/reset-password', '/pricing', '/auth/callback'];
 
 // Allowed parent origins for postMessage auth (embedded mode)
 const ALLOWED_PARENT_ORIGINS = [
