@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDashboard } from '@/hooks/useDashboard';
 import {
@@ -22,52 +23,51 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 
-// Demo data for when database tables don't exist yet
+// Demo data for presentation mode - impressive commercial projects
 const DEMO_DATA = {
   stats: {
-    activeJobs: 12,
-    revenueMonthToDate: 24580,
-    revenueChange: 18,
-    profitMargin: 34.2,
-    profitMarginChange: 2.1,
-    quotesPending: 5,
-    quotesPendingValue: 18200,
-    openLeads: 8,
-    leadsChange: -3,
+    activeJobs: 8,
+    revenueMonthToDate: 482500,
+    revenueChange: 24,
+    profitMargin: 38.5,
+    profitMarginChange: 4.2,
+    quotesPending: 6,
+    quotesPendingValue: 269500,
+    openLeads: 12,
+    leadsChange: 5,
   },
   actionItems: [
     { label: 'Quotes awaiting approval', count: 3, href: '/jobs?filter=quotes', priority: 'high' as const, action: 'Follow up with clients' },
-    { label: 'Invoices overdue', count: 2, href: '/books?filter=overdue', priority: 'high' as const, action: 'Send payment reminders' },
-    { label: 'Jobs over budget', count: 1, href: '/jobs?filter=over-budget', priority: 'medium' as const, action: 'Review labor entries' },
-    { label: 'Expenses need job assignment', count: 4, href: '/expenses?filter=unassigned', priority: 'low' as const, action: 'Assign to jobs' },
+    { label: 'Invoices overdue', count: 1, href: '/books?filter=overdue', priority: 'high' as const, action: 'Send payment reminders' },
+    { label: 'Jobs over budget', count: 0, href: '/jobs?filter=over-budget', priority: 'medium' as const, action: 'Review labor entries' },
+    { label: 'Expenses need job assignment', count: 2, href: '/expenses?filter=unassigned', priority: 'low' as const, action: 'Assign to jobs' },
   ],
   profitRisks: [
-    { job: 'ABC Corp Parking Lot', jobId: '1', issue: 'Labor trending 18% over estimate', impact: '-$890', severity: 'high' as const, action: 'Review time entries' },
-    { job: 'City Mall Section B', jobId: '2', issue: 'Materials overspend', impact: '-$340', severity: 'medium' as const, action: 'Check material receipts' },
-    { job: 'Johnson Residence', jobId: '3', issue: 'Scope creep - 2 change orders pending', impact: 'TBD', severity: 'medium' as const, action: 'Approve change orders' },
+    { job: 'O\'Hare Employee Lot C', jobId: '1', issue: 'Weather delay - 2 days behind', impact: '-$2,400', severity: 'medium' as const, action: 'Reschedule crew' },
+    { job: 'Westfield Mall - Phase 2', jobId: '2', issue: 'Change order pending approval', impact: '+$12,500', severity: 'low' as const, action: 'Send for signature' },
   ],
   estimateVsActual: {
-    estimated: 31200,
-    actual: 24580,
-    variance: -6620,
-    variancePercent: -21.2,
+    estimated: 520000,
+    actual: 482500,
+    variance: -37500,
+    variancePercent: -7.2,
   },
   dataQuality: {
-    expensesAssignedPercent: 96,
-    expensesPendingCategorization: 2,
-    jobsWithEstimates: 11,
-    totalJobs: 12,
+    expensesAssignedPercent: 98,
+    expensesPendingCategorization: 1,
+    jobsWithEstimates: 8,
+    totalJobs: 8,
     lastSyncedAt: new Date().toISOString(),
   },
   recentJobs: [
-    { id: '1', user_id: '', name: 'Johnson Residence - Driveway', client_name: 'Mike Johnson', status: 'active' as const, estimated_revenue: 3200, actual_revenue: 2310, property_address: null, start_date: null, end_date: null, estimated_cost: null, actual_cost: null, created_at: '', updated_at: '' },
-    { id: '2', user_id: '', name: 'ABC Corp Parking Lot', client_name: 'ABC Corporation', status: 'planned' as const, estimated_revenue: 12500, actual_revenue: 8300, property_address: null, start_date: null, end_date: null, estimated_cost: null, actual_cost: null, created_at: '', updated_at: '' },
-    { id: '3', user_id: '', name: 'Smith Property Striping', client_name: 'Tom Smith', status: 'completed' as const, estimated_revenue: 1800, actual_revenue: 1180, property_address: null, start_date: null, end_date: null, estimated_cost: null, actual_cost: null, created_at: '', updated_at: '' },
+    { id: '1', user_id: '', name: 'Westfield Mall - Main Lot', client_name: 'Westfield Property Management', status: 'active' as const, estimated_revenue: 87500, actual_revenue: 43750, property_address: null, start_date: null, end_date: null, estimated_cost: null, actual_cost: null, created_at: '', updated_at: '' },
+    { id: '2', user_id: '', name: 'O\'Hare Employee Lot C', client_name: 'Chicago Dept of Aviation', status: 'active' as const, estimated_revenue: 156000, actual_revenue: 78000, property_address: null, start_date: null, end_date: null, estimated_cost: null, actual_cost: null, created_at: '', updated_at: '' },
+    { id: '3', user_id: '', name: 'Costco Distribution Center', client_name: 'Costco Wholesale', status: 'completed' as const, estimated_revenue: 125000, actual_revenue: 125000, property_address: null, start_date: null, end_date: null, estimated_cost: null, actual_cost: null, created_at: '', updated_at: '' },
   ],
   recentExpenses: [
-    { id: '1', user_id: '', job_id: null, description: 'Construction materials', amount: 245.80, date: new Date().toISOString().split('T')[0], vendor: 'Home Depot', category_id: null, category_name: 'Materials', is_business: true, receipt_url: null, created_at: '' },
-    { id: '2', user_id: '', job_id: null, description: 'Fuel', amount: 89.50, date: new Date(Date.now() - 86400000).toISOString().split('T')[0], vendor: 'Shell Gas Station', category_id: null, category_name: 'Fuel', is_business: true, receipt_url: null, created_at: '' },
-    { id: '3', user_id: '', job_id: null, description: 'Equipment rental', amount: 156.20, date: new Date(Date.now() - 172800000).toISOString().split('T')[0], vendor: 'Lowes', category_id: null, category_name: 'Equipment', is_business: true, receipt_url: null, created_at: '' },
+    { id: '1', user_id: '', job_id: null, description: 'Sealcoating material - 500 gal', amount: 8450.00, date: new Date().toISOString().split('T')[0], vendor: 'Neyra Industries', category_id: null, category_name: 'Materials', is_business: true, receipt_url: null, created_at: '' },
+    { id: '2', user_id: '', job_id: null, description: 'Equipment rental - Squeegee trailer', amount: 1250.00, date: new Date(Date.now() - 86400000).toISOString().split('T')[0], vendor: 'Sunbelt Rentals', category_id: null, category_name: 'Equipment', is_business: true, receipt_url: null, created_at: '' },
+    { id: '3', user_id: '', job_id: null, description: 'Crew fuel - Week 52', amount: 892.50, date: new Date(Date.now() - 172800000).toISOString().split('T')[0], vendor: 'BP Fleet Card', category_id: null, category_name: 'Fuel', is_business: true, receipt_url: null, created_at: '' },
   ],
 };
 
@@ -82,11 +82,18 @@ const actionIcons: Record<string, React.ComponentType<{ className?: string }>> =
 export default function DashboardPage() {
   const { user } = useAuth();
   const dashboardData = useDashboard(user?.id);
+  const [isPresentationMode, setIsPresentationMode] = useState(false);
 
-  // Determine if we're in demo mode (no real data yet)
-  const isDemoMode = dashboardData.isLoading === false &&
+  // Check for presentation mode from localStorage
+  useEffect(() => {
+    const demoMode = localStorage.getItem('presentationMode') === 'true';
+    setIsPresentationMode(demoMode);
+  }, []);
+
+  // Determine if we're in demo mode - either presentation mode OR no real data
+  const isDemoMode = isPresentationMode || (dashboardData.isLoading === false &&
     dashboardData.recentJobs.length === 0 &&
-    dashboardData.stats.activeJobs === 0;
+    dashboardData.stats.activeJobs === 0);
 
   // Use real data or fall back to demo data
   const data = isDemoMode ? {

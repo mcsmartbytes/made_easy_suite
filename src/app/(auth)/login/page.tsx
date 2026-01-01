@@ -35,6 +35,12 @@ export default function LoginPage() {
     }
   };
 
+  const handleDemoLogin = () => {
+    localStorage.setItem('demoSession', 'true');
+    localStorage.setItem('presentationMode', 'true');
+    window.location.href = '/dashboard';
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-900 to-slate-800 flex items-center justify-center p-6">
       <div className="w-full max-w-md">
@@ -106,6 +112,24 @@ export default function LoginPage() {
           >
             {loading ? 'Signing in...' : 'Sign In'}
             {!loading && <ArrowRight className="w-4 h-4" />}
+          </button>
+
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-slate-600"></div>
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-2 bg-slate-800/50 text-slate-400">or</span>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleDemoLogin}
+            className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white py-4 rounded-lg font-bold text-lg transition-all flex items-center justify-center gap-3 shadow-lg shadow-emerald-500/25 border-2 border-emerald-400/30"
+          >
+            🚀 Enter Demo Mode
+            <span className="text-xs bg-white/20 px-2 py-1 rounded">No login required</span>
           </button>
         </form>
 

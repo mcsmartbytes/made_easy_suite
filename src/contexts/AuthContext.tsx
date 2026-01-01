@@ -9,6 +9,7 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   isEmbedded: boolean;
+  isDemoMode: boolean;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
 }
@@ -26,9 +27,24 @@ const ALLOWED_PARENT_ORIGINS = [
   'http://localhost:3001',
 ];
 
+// Demo user for presentation mode
+const DEMO_USER = {
+  id: 'demo-user-id',
+  email: 'demo@madeeasysuite.com',
+  app_metadata: {},
+  user_metadata: {
+    full_name: 'Demo User',
+  },
+  aud: 'authenticated',
+  created_at: new Date().toISOString(),
+} as unknown as User;
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  // Check for demo mode synchronously on initial render to avoid flicker
+  const initialDemoMode = typeof window !== 'undefined' && localStorage.getItem('demoSession') === 'true';
+  const [user, setUser] = useState<User | null>(initialDemoMode ? DEMO_USER : null);
+  const [loading, setLoading] = useState(!initialDemoMode);
+  const [isDemoMode, setIsDemoMode] = useState(initialDemoMode);
   const authProcessed = useRef(false);
   const router = useRouter();
   const pathname = usePathname();
@@ -121,6 +137,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Handle initial authentication (non-embedded or fallback)
   useEffect(() => {
     const initAuth = async () => {
+      // Check for demo session first
+      if (typeof window !== 'undefined') {
+        const demoSession = localStorage.getItem('demoSession') === 'true';
+        if (demoSession) {
+          setIsDemoMode(true);
+          setUser(DEMO_USER);
+          setLoading(false);
+          return;
+        }
+      }
+
       if (isEmbedded) {
         // In embedded mode, wait for postMessage auth
         // Set a timeout to fall back to session check if no message received
@@ -138,9 +165,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     initAuth();
 
-    // Listen for auth state changes
+    // Listen for auth state changes (skip if in demo mode)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
+      // Don't override demo user with null from Supabase
+      const demoSession = localStorage.getItem('demoSession') === 'true';
+      if (!demoSession) {
+        setUser(session?.user ?? null);
+      }
     });
 
     return () => {
@@ -149,15 +180,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [isEmbedded, refreshUser]);
 
   // Redirect to login if not authenticated and on protected route
-  // Skip redirect when embedded in another app
+  // Skip redirect when embedded in another app or in demo mode
   useEffect(() => {
-    if (!loading && !user && !PUBLIC_ROUTES.includes(pathname) && !isEmbedded) {
+    if (!loading && !user && !PUBLIC_ROUTES.includes(pathname) && !isEmbedded && !isDemoMode) {
       router.push('/login');
     }
-  }, [user, loading, pathname, router, isEmbedded]);
+  }, [user, loading, pathname, router, isEmbedded, isDemoMode]);
 
   const logout = async (): Promise<void> => {
     try {
+      // Clear demo session
+      localStorage.removeItem('demoSession');
+      localStorage.removeItem('presentationMode');
+      setIsDemoMode(false);
+
       await supabase.auth.signOut();
       setUser(null);
       if (!isEmbedded) {
@@ -169,7 +205,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, isEmbedded, logout, refreshUser }}>
+    <AuthContext.Provider value={{ user, loading, isEmbedded, isDemoMode, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

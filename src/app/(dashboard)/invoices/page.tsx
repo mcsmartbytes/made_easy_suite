@@ -26,15 +26,92 @@ interface Invoice {
   };
 }
 
+// Demo invoices for presentation mode
+const demoInvoices: Invoice[] = [
+  {
+    id: 'inv-1',
+    invoice_number: 'INV-2024-047',
+    customer_id: 'demo',
+    job_id: 'demo-3',
+    total: 125000,
+    amount_paid: 125000,
+    status: 'paid',
+    issue_date: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    due_date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    client_name: 'Costco Wholesale',
+    client_email: 'facilities@costco.com',
+  },
+  {
+    id: 'inv-2',
+    invoice_number: 'INV-2024-052',
+    customer_id: 'demo',
+    job_id: 'demo-1',
+    total: 43750,
+    amount_paid: 0,
+    status: 'sent',
+    issue_date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    due_date: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    client_name: 'Westfield Property Management',
+    client_email: 'ap@westfield.com',
+  },
+  {
+    id: 'inv-3',
+    invoice_number: 'INV-2024-051',
+    customer_id: 'demo',
+    job_id: 'demo-5',
+    total: 22500,
+    amount_paid: 0,
+    status: 'sent',
+    issue_date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    due_date: new Date(Date.now() + 20 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    client_name: 'Marriott International',
+    client_email: 'facilities@marriott.com',
+  },
+  {
+    id: 'inv-4',
+    invoice_number: 'INV-2025-001',
+    customer_id: 'demo',
+    job_id: 'demo-2',
+    total: 78000,
+    amount_paid: 0,
+    status: 'draft',
+    issue_date: new Date().toISOString().split('T')[0],
+    due_date: new Date(Date.now() + 45 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    client_name: 'Chicago Dept of Aviation',
+    client_email: 'contracts@flychicago.com',
+  },
+  {
+    id: 'inv-5',
+    invoice_number: 'INV-2025-002',
+    customer_id: 'demo',
+    job_id: 'demo-4',
+    total: 34250,
+    amount_paid: 0,
+    status: 'draft',
+    issue_date: new Date().toISOString().split('T')[0],
+    due_date: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    client_name: 'Target Corporation',
+    client_email: 'vendorpay@target.com',
+  },
+];
+
 export default function InvoicesPage() {
   const { user } = useAuth();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [isPresentationMode, setIsPresentationMode] = useState(false);
 
   useEffect(() => {
-    if (user?.id) {
+    // Check for presentation mode
+    const demoMode = localStorage.getItem('presentationMode') === 'true';
+    setIsPresentationMode(demoMode);
+
+    if (demoMode) {
+      setInvoices(demoInvoices);
+      setLoading(false);
+    } else if (user?.id) {
       loadInvoices();
     }
   }, [user?.id]);
@@ -197,23 +274,22 @@ export default function InvoicesPage() {
       {/* Invoices table */}
       <div className="card overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="data-table">
-            <thead>
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50 border-b">
               <tr>
-                <th>Invoice</th>
-                <th>Customer</th>
-                <th>Job</th>
-                <th>Issue Date</th>
-                <th>Due Date</th>
-                <th>Status</th>
-                <th className="text-right">Amount</th>
-                <th className="text-right">Actions</th>
+                <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Invoice</th>
+                <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Customer</th>
+                <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider hidden lg:table-cell">Issued</th>
+                <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Due</th>
+                <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
+                <th className="px-3 py-2 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Amount</th>
+                <th className="px-3 py-2 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider w-20">Actions</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-gray-100">
               {filteredInvoices.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="text-center py-8 text-corporate-gray">
+                  <td colSpan={7} className="text-center py-8 text-corporate-gray">
                     {invoices.length === 0 ? (
                       <div>
                         <p className="mb-2">No invoices yet</p>
@@ -229,57 +305,45 @@ export default function InvoicesPage() {
               ) : (
                 filteredInvoices.map((invoice) => {
                   const customerName = invoice.client_name || invoice.customers?.name || 'Unknown';
-                  const customerEmail = invoice.client_email || invoice.customers?.email || '';
-                  const jobData = invoice.jobs as { job_number: string; name: string } | null;
 
                   return (
-                    <tr key={invoice.id}>
-                      <td>
-                        <Link href={`/dashboard/invoices/${invoice.id}`} className="font-medium text-primary-600 hover:text-primary-700">
+                    <tr key={invoice.id} className="hover:bg-gray-50">
+                      <td className="px-3 py-2">
+                        <Link href={`/dashboard/invoices/${invoice.id}`} className="font-medium text-primary-600 hover:text-primary-700 text-xs">
                           {invoice.invoice_number}
                         </Link>
                       </td>
-                      <td>
-                        <p className="font-medium text-corporate-dark">{customerName}</p>
-                        <p className="text-xs text-corporate-gray">{customerEmail}</p>
+                      <td className="px-3 py-2">
+                        <p className="font-medium text-corporate-dark text-xs truncate max-w-[180px]">{customerName}</p>
                       </td>
-                      <td>
-                        {jobData ? (
-                          <Link href={`/dashboard/jobs/${invoice.job_id}`} className="text-sm text-primary-600 hover:underline">
-                            {jobData.job_number} - {jobData.name}
-                          </Link>
-                        ) : (
-                          <span className="text-xs text-corporate-gray">—</span>
-                        )}
+                      <td className="px-3 py-2 text-xs text-gray-500 hidden lg:table-cell">
+                        {new Date(invoice.issue_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                       </td>
-                      <td className="text-corporate-slate">
-                        {new Date(invoice.issue_date).toLocaleDateString()}
+                      <td className="px-3 py-2 text-xs text-gray-500">
+                        {new Date(invoice.due_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                       </td>
-                      <td className="text-corporate-slate">
-                        {new Date(invoice.due_date).toLocaleDateString()}
-                      </td>
-                      <td>{getStatusBadge(invoice.status)}</td>
-                      <td className="text-right font-semibold text-corporate-dark">
+                      <td className="px-3 py-2">{getStatusBadge(invoice.status)}</td>
+                      <td className="px-3 py-2 text-right font-semibold text-corporate-dark text-xs">
                         {formatCurrency(invoice.total || 0)}
                       </td>
-                      <td className="text-right">
-                        <div className="flex items-center justify-end gap-2">
+                      <td className="px-3 py-2 text-right">
+                        <div className="flex items-center justify-end gap-1">
                           <Link
                             href={`/dashboard/invoices/${invoice.id}`}
-                            className="p-2 text-corporate-gray hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
+                            className="p-1.5 text-corporate-gray hover:text-primary-600 hover:bg-primary-50 rounded transition-colors"
                             title="View"
                           >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                             </svg>
                           </Link>
                           {invoice.status === 'draft' && (
                             <button
-                              className="p-2 text-corporate-gray hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                              className="p-1.5 text-corporate-gray hover:text-green-600 hover:bg-green-50 rounded transition-colors"
                               title="Send"
                             >
-                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                               </svg>
                             </button>
@@ -287,10 +351,10 @@ export default function InvoicesPage() {
                           {(invoice.status === 'sent' || invoice.status === 'overdue') && (
                             <Link
                               href={`/dashboard/payments/receive?invoice=${invoice.id}`}
-                              className="p-2 text-corporate-gray hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                              className="p-1.5 text-corporate-gray hover:text-green-600 hover:bg-green-50 rounded transition-colors"
                               title="Record Payment"
                             >
-                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                               </svg>
                             </Link>

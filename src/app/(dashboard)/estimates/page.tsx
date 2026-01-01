@@ -23,16 +23,96 @@ interface Estimate {
   jobs?: { name?: string } | null;
 }
 
+// Demo estimates for presentation mode - impressive commercial projects
+const demoEstimates: Estimate[] = [
+  {
+    id: 'est-1',
+    estimate_number: 'EST-2025-001',
+    customer_name: 'Westfield Property Management',
+    status: 'accepted',
+    issue_date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+    expiry_date: new Date(Date.now() + 25 * 24 * 60 * 60 * 1000).toISOString(),
+    subtotal: 87500,
+    tax_amount: 0,
+    total: 87500,
+  },
+  {
+    id: 'est-2',
+    estimate_number: 'EST-2025-002',
+    customer_name: 'Chicago Dept of Aviation - O\'Hare',
+    status: 'sent',
+    issue_date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+    expiry_date: new Date(Date.now() + 27 * 24 * 60 * 60 * 1000).toISOString(),
+    subtotal: 156000,
+    tax_amount: 0,
+    total: 156000,
+  },
+  {
+    id: 'est-3',
+    estimate_number: 'EST-2025-003',
+    customer_name: 'Costco Wholesale Regional',
+    status: 'converted',
+    issue_date: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
+    expiry_date: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString(),
+    subtotal: 125000,
+    tax_amount: 0,
+    total: 125000,
+  },
+  {
+    id: 'est-4',
+    estimate_number: 'EST-2025-004',
+    customer_name: 'Target Corporation',
+    status: 'draft',
+    issue_date: new Date().toISOString(),
+    expiry_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+    subtotal: 68500,
+    tax_amount: 0,
+    total: 68500,
+  },
+  {
+    id: 'est-5',
+    estimate_number: 'EST-2025-005',
+    customer_name: 'Marriott International',
+    status: 'sent',
+    issue_date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+    expiry_date: new Date(Date.now() + 28 * 24 * 60 * 60 * 1000).toISOString(),
+    subtotal: 45000,
+    tax_amount: 0,
+    total: 45000,
+  },
+  {
+    id: 'est-6',
+    estimate_number: 'EST-2025-006',
+    customer_name: 'Simon Property Group - Mall of America',
+    status: 'accepted',
+    issue_date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+    expiry_date: new Date(Date.now() + 23 * 24 * 60 * 60 * 1000).toISOString(),
+    subtotal: 215000,
+    tax_amount: 0,
+    total: 215000,
+  },
+];
+
 export default function EstimatesPage() {
   const { user } = useAuth();
   const [estimates, setEstimates] = useState<Estimate[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [isPresentationMode, setIsPresentationMode] = useState(false);
 
   useEffect(() => {
-    if (user?.id) {
+    // Check for presentation mode first
+    const demoMode = localStorage.getItem('presentationMode') === 'true';
+    setIsPresentationMode(demoMode);
+
+    if (demoMode) {
+      setEstimates(demoEstimates);
+      setLoading(false);
+    } else if (user?.id) {
       loadEstimates();
+    } else {
+      setLoading(false);
     }
   }, [user?.id]);
 

@@ -14,15 +14,78 @@ type Job = {
   created_at: string;
   industry_name?: string | null;
   industries?: { name: string }[] | null;
+  estimated_revenue?: number;
+  estimated_cost?: number;
+  property_address?: string;
 };
 
 type Industry = { id: string; name: string };
+
+// Demo jobs for presentation mode
+const demoJobs: Job[] = [
+  {
+    id: 'demo-1',
+    name: 'Westfield Mall - Main Lot Seal & Stripe',
+    client_name: 'Westfield Property Management',
+    status: 'active',
+    created_at: new Date().toISOString(),
+    industry_name: 'Sealcoating',
+    estimated_revenue: 87500,
+    estimated_cost: 52000,
+    property_address: '1200 Mall Drive, Chicago, IL',
+  },
+  {
+    id: 'demo-2',
+    name: 'O\'Hare Airport - Employee Lot C',
+    client_name: 'Chicago Dept of Aviation',
+    status: 'planned',
+    created_at: new Date().toISOString(),
+    industry_name: 'Sealcoating',
+    estimated_revenue: 156000,
+    estimated_cost: 89000,
+    property_address: '10000 W O\'Hare, Chicago, IL',
+  },
+  {
+    id: 'demo-3',
+    name: 'Costco Distribution Center',
+    client_name: 'Costco Wholesale',
+    status: 'completed',
+    created_at: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString(),
+    industry_name: 'Sealcoating',
+    estimated_revenue: 125000,
+    estimated_cost: 71500,
+    property_address: '8800 Industrial Pkwy, Naperville, IL',
+  },
+  {
+    id: 'demo-4',
+    name: 'Target Plaza - Full Resurface',
+    client_name: 'Target Corporation',
+    status: 'planned',
+    created_at: new Date().toISOString(),
+    industry_name: 'Sealcoating',
+    estimated_revenue: 68500,
+    estimated_cost: 41000,
+    property_address: '5500 Retail Way, Schaumburg, IL',
+  },
+  {
+    id: 'demo-5',
+    name: 'Marriott Hotel Complex',
+    client_name: 'Marriott International',
+    status: 'active',
+    created_at: new Date().toISOString(),
+    industry_name: 'Sealcoating',
+    estimated_revenue: 45000,
+    estimated_cost: 26500,
+    property_address: '200 Convention Center Dr, Rosemont, IL',
+  },
+];
 
 function JobsPageContent() {
   const { user } = useAuth();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isPresentationMode, setIsPresentationMode] = useState(false);
 
   const [name, setName] = useState('');
   const [clientName, setClientName] = useState('');
@@ -40,7 +103,14 @@ function JobsPageContent() {
   const [dumpsterHauler, setDumpsterHauler] = useState('');
 
   useEffect(() => {
-    if (user) {
+    // Check for presentation mode
+    const demoMode = localStorage.getItem('presentationMode') === 'true';
+    setIsPresentationMode(demoMode);
+
+    if (demoMode) {
+      setJobs(demoJobs);
+      setLoading(false);
+    } else if (user) {
       void loadData();
     }
   }, [user]);
