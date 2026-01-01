@@ -30,7 +30,8 @@ import {
   CreditCard,
   UserCircle,
   Target,
-  Presentation
+  Presentation,
+  CalendarDays
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -65,6 +66,7 @@ const fullNavSections: NavSection[] = [
     title: 'Team & Subs',
     hideInDemo: true,
     items: [
+      { name: 'Scheduling', href: '/scheduling', icon: CalendarDays },
       { name: 'Crew', href: '/crew', icon: Users },
       { name: 'Subcontractors', href: '/subcontractors', icon: Handshake },
       { name: 'Time Tracking', href: '/time-tracking', icon: Clock },
@@ -110,6 +112,7 @@ const demoNavSections: NavSection[] = [
     title: 'Overview',
     items: [
       { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+      { name: 'Scheduling', href: '/scheduling', icon: CalendarDays },
     ],
   },
   {
