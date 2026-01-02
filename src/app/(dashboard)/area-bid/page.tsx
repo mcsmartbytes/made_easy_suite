@@ -163,7 +163,7 @@ export default function AreaBidPage() {
   }
 
   return (
-    <div className="-m-4 md:-m-6 flex flex-col" style={{ height: 'calc(100vh - 4rem)' }}>
+    <div className="-m-4 md:-m-6 flex flex-col h-[calc(100vh-5rem)] md:h-[calc(100vh-5.5rem)]">
       {/* Success Banner */}
       {showBanner && receivedData && (
         <div className="bg-gradient-to-r from-emerald-500 to-emerald-600 text-white px-5 py-3 flex justify-between items-center gap-4 shadow-lg z-10">
@@ -202,13 +202,12 @@ export default function AreaBidPage() {
       )}
 
       {/* Iframe */}
-      <div className="flex-1">
+      <div className="flex-1 min-h-0">
         <iframe
           src="https://area-bid-helper.vercel.app"
           className="w-full h-full border-0"
           title="Area Bid Helper"
           allow="geolocation"
-          style={{ minHeight: '100%' }}
         />
       </div>
     </div>
