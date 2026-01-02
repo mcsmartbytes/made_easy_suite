@@ -165,7 +165,7 @@ export default function AreaBidPage() {
   }
 
   return (
-    <div className="fixed inset-0 z-[100] flex flex-col bg-gray-50">
+    <div className="fixed inset-0 z-[9999] flex flex-col bg-gray-50 overflow-hidden">
       {/* Minimal top nav for Area Bid */}
       <nav className="bg-slate-900 text-white px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-4">
