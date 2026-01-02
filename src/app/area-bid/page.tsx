@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, FileSpreadsheet } from 'lucide-react';
+import ProtectedRoute from '@/components/ProtectedRoute';
 
 interface QuoteData {
   totalArea: number;
@@ -165,9 +166,10 @@ export default function AreaBidPage() {
   }
 
   return (
-    <div className="fixed inset-0 z-[9999] flex flex-col bg-gray-50 overflow-hidden">
-      {/* Minimal top nav for Area Bid */}
-      <nav className="bg-slate-900 text-white px-4 py-3 flex items-center justify-between">
+    <ProtectedRoute>
+      <div className="flex flex-col h-screen bg-gray-50">
+        {/* Minimal top nav for Area Bid */}
+        <nav className="bg-slate-900 text-white px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Link
             href="/dashboard"
@@ -229,15 +231,16 @@ export default function AreaBidPage() {
         </div>
       )}
 
-      {/* Iframe - Full screen */}
-      <div className="flex-1">
-        <iframe
-          src="https://area-bid-helper.vercel.app"
-          className="w-full h-full border-0"
-          title="Area Bid Helper"
-          allow="geolocation"
-        />
+        {/* Iframe - Full screen */}
+        <div className="flex-1">
+          <iframe
+            src="https://area-bid-helper.vercel.app"
+            className="w-full h-full border-0"
+            title="Area Bid Helper"
+            allow="geolocation"
+          />
+        </div>
       </div>
-    </div>
+    </ProtectedRoute>
   );
 }
