@@ -163,7 +163,7 @@ export default function AreaBidPage() {
   }
 
   return (
-    <div className="fixed inset-0 top-16 md:-m-0 -mx-4 -mb-4 flex flex-col">
+    <div className="-m-4 md:-m-6 flex flex-col" style={{ height: 'calc(100vh - 4rem)' }}>
       {/* Success Banner */}
       {showBanner && receivedData && (
         <div className="bg-gradient-to-r from-emerald-500 to-emerald-600 text-white px-5 py-3 flex justify-between items-center gap-4 shadow-lg z-10">
