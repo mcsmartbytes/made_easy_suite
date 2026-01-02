@@ -1,13 +1,15 @@
 'use client';
 
-import { Bell, Search, User, Menu } from 'lucide-react';
+import { Bell, Search, User, Menu, PanelLeftClose, PanelLeft } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface HeaderProps {
   onMenuClick: () => void;
+  onToggleCollapse?: () => void;
+  sidebarCollapsed?: boolean;
 }
 
-export default function Header({ onMenuClick }: HeaderProps) {
+export default function Header({ onMenuClick, onToggleCollapse, sidebarCollapsed }: HeaderProps) {
   const { user } = useAuth();
 
   return (
@@ -21,6 +23,21 @@ export default function Header({ onMenuClick }: HeaderProps) {
         >
           <Menu className="w-5 h-5" />
         </button>
+
+        {/* Sidebar collapse toggle - desktop only */}
+        {onToggleCollapse && (
+          <button
+            onClick={onToggleCollapse}
+            className="hidden md:flex p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
+            title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          >
+            {sidebarCollapsed ? (
+              <PanelLeft className="w-5 h-5" />
+            ) : (
+              <PanelLeftClose className="w-5 h-5" />
+            )}
+          </button>
+        )}
 
         {/* Search - hidden on small mobile */}
         <div className="relative max-w-md w-full hidden sm:block">
