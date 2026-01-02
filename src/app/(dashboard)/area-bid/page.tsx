@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { ArrowLeft, FileSpreadsheet } from 'lucide-react';
 
 interface QuoteData {
   totalArea: number;
@@ -163,10 +165,36 @@ export default function AreaBidPage() {
   }
 
   return (
-    <div className="-m-4 md:-m-6 flex flex-col" style={{ height: 'calc(100vh - 3.5rem)' }}>
+    <div className="fixed inset-0 z-[100] flex flex-col bg-gray-50">
+      {/* Minimal top nav for Area Bid */}
+      <nav className="bg-slate-900 text-white px-4 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Link
+            href="/dashboard"
+            className="flex items-center gap-2 text-slate-300 hover:text-white transition"
+          >
+            <ArrowLeft className="w-5 h-5" />
+            <span className="text-sm">Back to Dashboard</span>
+          </Link>
+          <div className="hidden sm:flex items-center gap-2 text-white">
+            <div className="w-6 h-6 bg-gradient-to-br from-blue-500 to-purple-600 rounded flex items-center justify-center">
+              <span className="text-white font-bold text-xs">ME</span>
+            </div>
+            <span className="font-semibold">Area Bid Calculator</span>
+          </div>
+        </div>
+        <Link
+          href="/estimates"
+          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg text-sm font-medium transition"
+        >
+          <FileSpreadsheet className="w-4 h-4" />
+          <span className="hidden sm:inline">Estimates</span>
+        </Link>
+      </nav>
+
       {/* Success Banner */}
       {showBanner && receivedData && (
-        <div className="bg-gradient-to-r from-emerald-500 to-emerald-600 text-white px-5 py-3 flex justify-between items-center gap-4 shadow-lg z-10">
+        <div className="bg-gradient-to-r from-emerald-500 to-emerald-600 text-white px-5 py-3 flex justify-between items-center gap-4 shadow-lg">
           <div className="text-sm">
             <strong>Measurement Received!</strong>{' '}
             {receivedData.concrete ? (
@@ -201,8 +229,8 @@ export default function AreaBidPage() {
         </div>
       )}
 
-      {/* Iframe */}
-      <div className="flex-1 min-h-0">
+      {/* Iframe - Full screen */}
+      <div className="flex-1">
         <iframe
           src="https://area-bid-helper.vercel.app"
           className="w-full h-full border-0"
