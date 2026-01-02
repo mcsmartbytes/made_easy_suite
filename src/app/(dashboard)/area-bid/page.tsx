@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 interface QuoteData {
@@ -43,38 +43,6 @@ export default function AreaBidPage() {
   const router = useRouter();
   const [receivedData, setReceivedData] = useState<QuoteData | null>(null);
   const [showBanner, setShowBanner] = useState(false);
-  const [sidebarWidth, setSidebarWidth] = useState('256px');
-  const [isClient, setIsClient] = useState(false);
-
-  // Track sidebar collapsed state and calculate width
-  useEffect(() => {
-    setIsClient(true);
-
-    const updateSidebarWidth = () => {
-      // On mobile, sidebar is hidden
-      if (window.innerWidth < 768) {
-        setSidebarWidth('0px');
-        return;
-      }
-      const collapsed = localStorage.getItem('sidebarCollapsed') === 'true';
-      setSidebarWidth(collapsed ? '64px' : '256px');
-    };
-
-    updateSidebarWidth();
-
-    // Listen for storage changes
-    window.addEventListener('storage', updateSidebarWidth);
-    window.addEventListener('resize', updateSidebarWidth);
-
-    // Poll for changes since storage event doesn't fire in same tab
-    const interval = setInterval(updateSidebarWidth, 100);
-
-    return () => {
-      window.removeEventListener('storage', updateSidebarWidth);
-      window.removeEventListener('resize', updateSidebarWidth);
-      clearInterval(interval);
-    };
-  }, []);
 
   useEffect(() => {
     function handleMessage(event: MessageEvent) {
@@ -195,10 +163,7 @@ export default function AreaBidPage() {
   }
 
   return (
-    <div
-      className="fixed top-14 md:top-16 right-0 bottom-0 flex flex-col bg-gray-50 transition-all duration-300"
-      style={{ left: isClient ? sidebarWidth : '256px' }}
-    >
+    <div className="-m-4 md:-m-6 flex flex-col" style={{ height: 'calc(100vh - 3.5rem)' }}>
       {/* Success Banner */}
       {showBanner && receivedData && (
         <div className="bg-gradient-to-r from-emerald-500 to-emerald-600 text-white px-5 py-3 flex justify-between items-center gap-4 shadow-lg z-10">
