@@ -231,38 +231,38 @@ export default function DashboardPage() {
       )}
 
       {/* Welcome */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">
+          <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">
             Welcome back, {user?.user_metadata?.full_name?.split(' ')[0] || 'there'}!
           </h1>
-          <p className="text-gray-600 mt-1">Here&apos;s what needs your attention today.</p>
+          <p className="text-sm text-gray-600 mt-1">Here&apos;s what needs your attention today.</p>
         </div>
         {/* Quick Actions */}
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-1.5 sm:gap-2">
           {quickActions.map((action) => (
             <Link
               key={action.label}
               href={action.href}
-              className={`${action.color} text-white px-3 py-2 rounded-lg font-medium flex items-center gap-2 hover:opacity-90 transition-opacity text-sm`}
+              className={`${action.color} text-white px-2 py-1.5 sm:px-3 sm:py-2 rounded-lg font-medium flex items-center gap-1 sm:gap-2 hover:opacity-90 transition-opacity text-[10px] sm:text-sm`}
             >
-              <action.icon className="w-4 h-4" />
-              {action.label}
+              <action.icon className="w-3 h-3 sm:w-4 sm:h-4" />
+              <span className="hidden sm:inline">{action.label}</span>
             </Link>
           ))}
         </div>
       </div>
 
       {/* Action Required + Profit Risks Row */}
-      <div className="grid lg:grid-cols-2 gap-4">
+      <div className="grid lg:grid-cols-2 gap-3 sm:gap-4">
         {/* Action Required */}
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-          <div className="px-5 py-4 border-b border-gray-100 bg-amber-50 flex items-center justify-between">
+          <div className="px-3 sm:px-5 py-2.5 sm:py-4 border-b border-gray-100 bg-amber-50 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <AlertTriangle className="w-5 h-5 text-amber-600" />
-              <h2 className="font-semibold text-gray-900">Action Required</h2>
+              <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600" />
+              <h2 className="text-sm sm:text-base font-semibold text-gray-900">Action Required</h2>
             </div>
-            <span className="bg-amber-600 text-white text-xs font-bold px-2 py-1 rounded-full">
+            <span className="bg-amber-600 text-white text-[10px] sm:text-xs font-bold px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full">
               {totalActionItems}
             </span>
           </div>
@@ -274,35 +274,35 @@ export default function DashboardPage() {
                 <Link
                   key={i}
                   href={item.href}
-                  className="px-5 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors group"
+                  className="px-3 sm:px-5 py-2.5 sm:py-3 flex items-center justify-between hover:bg-gray-50 transition-colors group"
                 >
-                  <div className="flex items-center gap-3">
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                  <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+                    <div className={`w-6 h-6 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
                       item.priority === 'high' ? 'bg-red-100' :
                       item.priority === 'medium' ? 'bg-amber-100' : 'bg-gray-100'
                     }`}>
-                      <IconComponent className={`w-4 h-4 ${
+                      <IconComponent className={`w-3 h-3 sm:w-4 sm:h-4 ${
                         item.priority === 'high' ? 'text-red-600' :
                         item.priority === 'medium' ? 'text-amber-600' : 'text-gray-600'
                       }`} />
                     </div>
-                    <div>
-                      <span className="text-gray-700">{item.label}</span>
+                    <div className="min-w-0">
+                      <span className="text-xs sm:text-sm text-gray-700 block truncate">{item.label}</span>
                       {actionHint && (
-                        <span className="hidden group-hover:inline text-blue-600 text-sm ml-2">
+                        <span className="hidden group-hover:block text-blue-600 text-xs truncate">
                           → {actionHint}
                         </span>
                       )}
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className={`font-semibold ${
+                  <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
+                    <span className={`text-sm sm:text-base font-semibold ${
                       item.priority === 'high' ? 'text-red-600' :
                       item.priority === 'medium' ? 'text-amber-600' : 'text-gray-600'
                     }`}>
                       {item.count}
                     </span>
-                    <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-blue-600 transition-colors" />
+                    <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 group-hover:text-blue-600 transition-colors" />
                   </div>
                 </Link>
               );
@@ -312,13 +312,13 @@ export default function DashboardPage() {
 
         {/* Profit Risks */}
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-          <div className="px-5 py-4 border-b border-gray-100 bg-red-50 flex items-center justify-between">
+          <div className="px-3 sm:px-5 py-2.5 sm:py-4 border-b border-gray-100 bg-red-50 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Zap className="w-5 h-5 text-red-600" />
-              <h2 className="font-semibold text-gray-900">Profit Risks</h2>
+              <Zap className="w-4 h-4 sm:w-5 sm:h-5 text-red-600" />
+              <h2 className="text-sm sm:text-base font-semibold text-gray-900">Profit Risks</h2>
             </div>
-            <span className="text-sm text-red-600 font-medium">
-              {formatCurrency(Math.abs(data.estimateVsActual.variance))} at risk
+            <span className="text-xs sm:text-sm text-red-600 font-medium">
+              {formatCurrency(Math.abs(data.estimateVsActual.variance))}
             </span>
           </div>
           <div className="divide-y divide-gray-100">
@@ -328,20 +328,20 @@ export default function DashboardPage() {
                 <Link
                   key={i}
                   href={`/jobs/${risk.jobId}`}
-                  className="block px-5 py-3 hover:bg-gray-50 transition-colors group"
+                  className="block px-3 sm:px-5 py-2.5 sm:py-3 hover:bg-gray-50 transition-colors group"
                 >
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <p className="font-medium text-gray-900 text-sm">{risk.job}</p>
-                      <p className="text-sm text-gray-500">{risk.issue}</p>
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-gray-900 text-xs sm:text-sm truncate">{risk.job}</p>
+                      <p className="text-xs sm:text-sm text-gray-500 truncate">{risk.issue}</p>
                       {recommendedAction && (
-                        <p className="text-xs text-blue-600 mt-1 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <p className="hidden sm:flex text-xs text-blue-600 mt-1 items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                           <span className="font-medium">Recommended:</span> {recommendedAction}
                           <ChevronRight className="w-3 h-3" />
                         </p>
                       )}
                     </div>
-                    <span className={`font-semibold ml-4 ${
+                    <span className={`text-xs sm:text-sm font-semibold flex-shrink-0 ${
                       risk.severity === 'high' ? 'text-red-600' : 'text-amber-600'
                     }`}>
                       {risk.impact}
@@ -350,9 +350,9 @@ export default function DashboardPage() {
                 </Link>
               );
             }) : (
-              <div className="px-5 py-6 text-center text-gray-500">
-                <p className="text-sm">No profit risks detected</p>
-                <p className="text-xs mt-1">All jobs are on track!</p>
+              <div className="px-3 sm:px-5 py-4 sm:py-6 text-center text-gray-500">
+                <p className="text-xs sm:text-sm">No profit risks detected</p>
+                <p className="text-[10px] sm:text-xs mt-1">All jobs are on track!</p>
               </div>
             )}
           </div>
@@ -360,26 +360,26 @@ export default function DashboardPage() {
       </div>
 
       {/* Stats Grid - Drillable */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-4">
         {stats.map((stat) => (
           <Link
             key={stat.label}
             href={stat.href}
-            className="bg-white rounded-xl border border-gray-200 p-4 hover:border-blue-300 hover:shadow-md transition-all cursor-pointer group"
+            className="bg-white rounded-xl border border-gray-200 p-2.5 sm:p-4 hover:border-blue-300 hover:shadow-md transition-all cursor-pointer group"
             title={stat.drilldownLabel}
           >
-            <div className="flex items-center justify-between mb-2">
-              <div className={`w-8 h-8 rounded-lg flex items-center justify-center bg-${stat.color}-100`}>
-                <stat.icon className={`w-4 h-4 text-${stat.color}-600`} />
+            <div className="flex items-center justify-between mb-1.5 sm:mb-2">
+              <div className={`w-6 h-6 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center bg-${stat.color}-100`}>
+                <stat.icon className={`w-3 h-3 sm:w-4 sm:h-4 text-${stat.color}-600`} />
               </div>
-              <div className={`flex items-center gap-0.5 text-xs ${stat.trend === 'up' ? 'text-green-600' : 'text-red-600'}`}>
-                {stat.trend === 'up' ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
-                {stat.change}
+              <div className={`flex items-center gap-0.5 text-[10px] sm:text-xs ${stat.trend === 'up' ? 'text-green-600' : 'text-red-600'}`}>
+                {stat.trend === 'up' ? <ArrowUpRight className="w-2.5 h-2.5 sm:w-3 sm:h-3" /> : <ArrowDownRight className="w-2.5 h-2.5 sm:w-3 sm:h-3" />}
+                <span className="truncate max-w-[50px] sm:max-w-none">{stat.change}</span>
               </div>
             </div>
-            <p className="text-xl font-bold text-gray-900">{stat.value}</p>
-            <p className="text-xs text-gray-500 group-hover:text-blue-600 transition-colors">{stat.label}</p>
-            <p className="text-xs text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity mt-1 flex items-center gap-1">
+            <p className="text-sm sm:text-xl font-bold text-gray-900 truncate">{stat.value}</p>
+            <p className="text-[10px] sm:text-xs text-gray-500 group-hover:text-blue-600 transition-colors truncate">{stat.label}</p>
+            <p className="hidden sm:flex text-xs text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity mt-1 items-center gap-1">
               {stat.drilldownLabel} <ChevronRight className="w-3 h-3" />
             </p>
           </Link>
@@ -387,48 +387,48 @@ export default function DashboardPage() {
       </div>
 
       {/* Estimate vs Actual */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <div className="flex items-center justify-between mb-4">
+      <div className="bg-white rounded-xl border border-gray-200 p-3 sm:p-6">
+        <div className="flex items-center justify-between mb-3 sm:mb-4">
           <div className="flex items-center gap-2">
-            <Target className="w-5 h-5 text-blue-600" />
-            <h2 className="font-semibold text-gray-900">Estimated vs Actual Profit (MTD)</h2>
+            <Target className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
+            <h2 className="text-sm sm:text-base font-semibold text-gray-900">Estimated vs Actual (MTD)</h2>
           </div>
-          <Link href="/reports" className="text-sm text-blue-600 hover:text-blue-700 font-medium">
-            View Details
+          <Link href="/reports" className="text-xs sm:text-sm text-blue-600 hover:text-blue-700 font-medium">
+            Details
           </Link>
         </div>
-        <div className="grid md:grid-cols-5 gap-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 sm:gap-6">
           <div>
-            <p className="text-sm text-gray-500 mb-1">Estimated Profit</p>
-            <p className="text-2xl font-bold text-gray-900">{formatCurrency(data.estimateVsActual.estimated)}</p>
+            <p className="text-xs sm:text-sm text-gray-500 mb-0.5 sm:mb-1">Estimated</p>
+            <p className="text-base sm:text-2xl font-bold text-gray-900">{formatCurrency(data.estimateVsActual.estimated)}</p>
           </div>
           <div>
-            <p className="text-sm text-gray-500 mb-1">Actual Profit</p>
-            <p className="text-2xl font-bold text-blue-600">{formatCurrency(data.estimateVsActual.actual)}</p>
+            <p className="text-xs sm:text-sm text-gray-500 mb-0.5 sm:mb-1">Actual</p>
+            <p className="text-base sm:text-2xl font-bold text-blue-600">{formatCurrency(data.estimateVsActual.actual)}</p>
           </div>
           <div>
-            <p className="text-sm text-gray-500 mb-1">Variance</p>
-            <p className={`text-2xl font-bold ${data.estimateVsActual.variance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+            <p className="text-xs sm:text-sm text-gray-500 mb-0.5 sm:mb-1">Variance</p>
+            <p className={`text-base sm:text-2xl font-bold ${data.estimateVsActual.variance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
               {data.estimateVsActual.variance >= 0 ? '+' : ''}{formatCurrency(data.estimateVsActual.variance)}
             </p>
           </div>
           <div>
-            <p className="text-sm text-gray-500 mb-1">Month-End Forecast</p>
-            <p className={`text-2xl font-bold ${forecastedMargin >= data.stats.profitMargin ? 'text-green-600' : 'text-amber-600'}`}>
+            <p className="text-xs sm:text-sm text-gray-500 mb-0.5 sm:mb-1">Forecast</p>
+            <p className={`text-base sm:text-2xl font-bold ${forecastedMargin >= data.stats.profitMargin ? 'text-green-600' : 'text-amber-600'}`}>
               {forecastedMargin.toFixed(1)}%
             </p>
-            <p className="text-xs text-gray-400 mt-0.5">margin if trend continues</p>
+            <p className="hidden sm:block text-xs text-gray-400 mt-0.5">margin if trend continues</p>
           </div>
-          <div>
-            <p className="text-sm text-gray-500 mb-1">Performance</p>
+          <div className="col-span-2 sm:col-span-1">
+            <p className="text-xs sm:text-sm text-gray-500 mb-0.5 sm:mb-1">Performance</p>
             <div className="flex items-center gap-2">
-              <div className="flex-1 h-3 bg-gray-100 rounded-full overflow-hidden">
+              <div className="flex-1 h-2 sm:h-3 bg-gray-100 rounded-full overflow-hidden">
                 <div
                   className={`h-full ${data.estimateVsActual.variancePercent >= 0 ? 'bg-green-500' : 'bg-red-500'}`}
                   style={{ width: `${Math.min(100, Math.max(0, (data.estimateVsActual.actual / data.estimateVsActual.estimated) * 100))}%` }}
                 />
               </div>
-              <span className={`text-sm font-semibold ${data.estimateVsActual.variancePercent >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+              <span className={`text-xs sm:text-sm font-semibold ${data.estimateVsActual.variancePercent >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                 {data.estimateVsActual.variancePercent}%
               </span>
             </div>
@@ -436,32 +436,32 @@ export default function DashboardPage() {
         </div>
         {/* Data Confidence Indicator */}
         {dataQuality && (
-          <div className="mt-4 pt-4 border-t border-gray-100 flex items-center justify-between text-xs text-gray-400">
-            <div className="flex items-center gap-4">
+          <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-gray-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-[10px] sm:text-xs text-gray-400">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4">
               <span className="flex items-center gap-1">
                 <span className={`w-2 h-2 rounded-full ${dataQuality.expensesAssignedPercent >= 90 ? 'bg-green-400' : dataQuality.expensesAssignedPercent >= 70 ? 'bg-amber-400' : 'bg-red-400'}`}></span>
-                Based on {dataQuality.expensesAssignedPercent}% of expenses assigned to jobs
+                {dataQuality.expensesAssignedPercent}% expenses assigned
               </span>
               {dataQuality.expensesPendingCategorization > 0 && (
                 <span className="text-amber-500">
-                  {dataQuality.expensesPendingCategorization} expense{dataQuality.expensesPendingCategorization > 1 ? 's' : ''} pending categorization
+                  {dataQuality.expensesPendingCategorization} pending
                 </span>
               )}
             </div>
             <span>
-              {dataQuality.jobsWithEstimates}/{dataQuality.totalJobs} jobs have estimates
+              {dataQuality.jobsWithEstimates}/{dataQuality.totalJobs} with estimates
             </span>
           </div>
         )}
       </div>
 
       {/* Two Column Layout */}
-      <div className="grid lg:grid-cols-2 gap-6">
+      <div className="grid lg:grid-cols-2 gap-4 sm:gap-6">
         {/* Recent Jobs - Drillable */}
         <div className="bg-white rounded-xl border border-gray-200">
-          <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-            <h2 className="font-semibold text-gray-900">Recent Jobs</h2>
-            <Link href="/jobs" className="text-sm text-blue-600 hover:text-blue-700 font-medium">
+          <div className="px-3 sm:px-5 py-3 sm:py-4 border-b border-gray-100 flex items-center justify-between">
+            <h2 className="text-sm sm:text-base font-semibold text-gray-900">Recent Jobs</h2>
+            <Link href="/jobs" className="text-xs sm:text-sm text-blue-600 hover:text-blue-700 font-medium">
               View all
             </Link>
           </div>
@@ -470,30 +470,30 @@ export default function DashboardPage() {
               <Link
                 key={job.id}
                 href={`/jobs/${job.id}`}
-                className="block px-5 py-4 hover:bg-blue-50 transition-colors group cursor-pointer"
+                className="block px-3 sm:px-5 py-3 sm:py-4 hover:bg-blue-50 transition-colors group cursor-pointer"
               >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium text-gray-900 group-hover:text-blue-600">{job.name}</p>
-                    <p className="text-sm text-gray-500">{job.client_name || 'No client'}</p>
+                <div className="flex items-center justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs sm:text-sm font-medium text-gray-900 group-hover:text-blue-600 truncate">{job.name}</p>
+                    <p className="text-[10px] sm:text-sm text-gray-500 truncate">{job.client_name || 'No client'}</p>
                   </div>
-                  <div className="text-right">
-                    <p className="font-medium text-gray-900">{formatCurrency(job.estimated_revenue || 0)}</p>
-                    <p className="text-sm text-green-600">
+                  <div className="text-right flex-shrink-0">
+                    <p className="text-xs sm:text-sm font-medium text-gray-900">{formatCurrency(job.estimated_revenue || 0)}</p>
+                    <p className="text-[10px] sm:text-sm text-green-600">
                       +{formatCurrency((job.estimated_revenue || 0) - (job.actual_revenue || 0))}
                     </p>
                   </div>
                 </div>
-                <div className="mt-2 flex items-center justify-between">
-                  <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                <div className="mt-1.5 sm:mt-2 flex items-center justify-between">
+                  <span className={`inline-flex items-center px-1.5 sm:px-2 py-0.5 rounded text-[10px] sm:text-xs font-medium ${
                     job.status === 'completed' ? 'bg-green-100 text-green-700' :
                     job.status === 'active' ? 'bg-blue-100 text-blue-700' :
                     'bg-yellow-100 text-yellow-700'
                   }`}>
                     {job.status === 'active' ? 'In Progress' : job.status === 'planned' ? 'Scheduled' : 'Completed'}
                   </span>
-                  <span className="text-xs text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
-                    View job details <ChevronRight className="w-3 h-3" />
+                  <span className="hidden sm:flex text-xs text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity items-center gap-1">
+                    View details <ChevronRight className="w-3 h-3" />
                   </span>
                 </div>
               </Link>
@@ -503,24 +503,24 @@ export default function DashboardPage() {
 
         {/* Recent Expenses */}
         <div className="bg-white rounded-xl border border-gray-200">
-          <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-            <h2 className="font-semibold text-gray-900">Recent Expenses</h2>
-            <Link href="/expenses" className="text-sm text-blue-600 hover:text-blue-700 font-medium">
+          <div className="px-3 sm:px-5 py-3 sm:py-4 border-b border-gray-100 flex items-center justify-between">
+            <h2 className="text-sm sm:text-base font-semibold text-gray-900">Recent Expenses</h2>
+            <Link href="/expenses" className="text-xs sm:text-sm text-blue-600 hover:text-blue-700 font-medium">
               View all
             </Link>
           </div>
           <div className="divide-y divide-gray-100">
             {data.recentExpenses.map((expense) => (
-              <div key={expense.id} className="px-5 py-4 hover:bg-gray-50 transition-colors">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium text-gray-900">{expense.vendor || expense.description}</p>
-                    <p className="text-sm text-gray-500">{expense.category_name || 'Uncategorized'}</p>
+              <div key={expense.id} className="px-3 sm:px-5 py-3 sm:py-4 hover:bg-gray-50 transition-colors">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs sm:text-sm font-medium text-gray-900 truncate">{expense.vendor || expense.description}</p>
+                    <p className="text-[10px] sm:text-sm text-gray-500">{expense.category_name || 'Uncategorized'}</p>
                   </div>
-                  <div className="text-right">
-                    <p className="font-medium text-gray-900">{formatCurrency(expense.amount)}</p>
-                    <p className="text-sm text-gray-500 flex items-center gap-1">
-                      <Clock className="w-3 h-3" />
+                  <div className="text-right flex-shrink-0">
+                    <p className="text-xs sm:text-sm font-medium text-gray-900">{formatCurrency(expense.amount)}</p>
+                    <p className="text-[10px] sm:text-sm text-gray-500 flex items-center gap-1 justify-end">
+                      <Clock className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
                       {formatRelativeDate(expense.date)}
                     </p>
                   </div>
@@ -532,17 +532,17 @@ export default function DashboardPage() {
       </div>
 
       {/* Profit Tracking Banner */}
-      <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl p-6 text-white">
-        <div className="flex items-center justify-between">
+      <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl p-4 sm:p-6 text-white">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
-            <h3 className="text-xl font-bold">Live Profit Tracking</h3>
-            <p className="text-white/80 mt-1">
-              See real-time margins on every job. Know what you&apos;re making, not just billing.
+            <h3 className="text-base sm:text-xl font-bold">Live Profit Tracking</h3>
+            <p className="text-white/80 mt-1 text-xs sm:text-base">
+              Real-time margins on every job.
             </p>
           </div>
           <Link
             href="/reports"
-            className="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-lg font-medium transition-colors"
+            className="bg-white/20 hover:bg-white/30 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors text-center"
           >
             View Reports
           </Link>
