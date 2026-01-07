@@ -24,7 +24,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-[#F7F8FA]">
         <div className="text-center">
           <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
           <p className="mt-4 text-gray-600">Loading Made Easy Suite...</p>
@@ -34,7 +34,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="flex min-h-screen bg-[#F7F8FA]">
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div
@@ -65,6 +65,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <main className="flex-1 p-4 md:p-6 overflow-auto">
           {children}
         </main>
+        {/* Professional Footer */}
+        <footer className="py-4 px-6 border-t border-slate-200 bg-white/50">
+          <p className="text-center text-sm text-slate-500">
+            © {new Date().getFullYear()} MC Smart Bytes · Secure · Role-Based Access
+          </p>
+        </footer>
       </div>
     </div>
   );

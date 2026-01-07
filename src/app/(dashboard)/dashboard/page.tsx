@@ -145,7 +145,7 @@ export default function DashboardPage() {
     return `${diffDays} days ago`;
   };
 
-  // Stats configuration
+  // Stats configuration - each stat is drillable
   const stats = [
     {
       label: 'Active Jobs',
@@ -153,7 +153,9 @@ export default function DashboardPage() {
       change: '+2',
       trend: 'up',
       icon: Briefcase,
-      color: 'blue'
+      color: 'blue',
+      href: '/jobs?status=active',
+      drilldownLabel: 'View active jobs'
     },
     {
       label: 'Revenue (MTD)',
@@ -161,7 +163,9 @@ export default function DashboardPage() {
       change: `+${data.stats.revenueChange}%`,
       trend: 'up',
       icon: DollarSign,
-      color: 'green'
+      color: 'green',
+      href: '/invoices?status=paid',
+      drilldownLabel: 'View paid invoices'
     },
     {
       label: 'Profit Margin',
@@ -169,7 +173,9 @@ export default function DashboardPage() {
       change: `+${data.stats.profitMarginChange}%`,
       trend: 'up',
       icon: TrendingUp,
-      color: 'purple'
+      color: 'purple',
+      href: '/reports',
+      drilldownLabel: 'View profit breakdown'
     },
     {
       label: 'Quotes Pending',
@@ -177,7 +183,9 @@ export default function DashboardPage() {
       change: formatCurrency(data.stats.quotesPendingValue),
       trend: 'up',
       icon: FileText,
-      color: 'yellow'
+      color: 'yellow',
+      href: '/estimates?status=sent',
+      drilldownLabel: 'View pending quotes'
     },
     {
       label: 'Open Leads',
@@ -185,7 +193,9 @@ export default function DashboardPage() {
       change: data.stats.leadsChange.toString(),
       trend: data.stats.leadsChange >= 0 ? 'up' : 'down',
       icon: Users,
-      color: 'orange'
+      color: 'orange',
+      href: '/deals?status=open',
+      drilldownLabel: 'View open leads'
     },
   ];
 
@@ -349,10 +359,15 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Stats Grid */}
+      {/* Stats Grid - Drillable */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         {stats.map((stat) => (
-          <div key={stat.label} className="bg-white rounded-xl border border-gray-200 p-4">
+          <Link
+            key={stat.label}
+            href={stat.href}
+            className="bg-white rounded-xl border border-gray-200 p-4 hover:border-blue-300 hover:shadow-md transition-all cursor-pointer group"
+            title={stat.drilldownLabel}
+          >
             <div className="flex items-center justify-between mb-2">
               <div className={`w-8 h-8 rounded-lg flex items-center justify-center bg-${stat.color}-100`}>
                 <stat.icon className={`w-4 h-4 text-${stat.color}-600`} />
@@ -363,8 +378,11 @@ export default function DashboardPage() {
               </div>
             </div>
             <p className="text-xl font-bold text-gray-900">{stat.value}</p>
-            <p className="text-xs text-gray-500">{stat.label}</p>
-          </div>
+            <p className="text-xs text-gray-500 group-hover:text-blue-600 transition-colors">{stat.label}</p>
+            <p className="text-xs text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity mt-1 flex items-center gap-1">
+              {stat.drilldownLabel} <ChevronRight className="w-3 h-3" />
+            </p>
+          </Link>
         ))}
       </div>
 
@@ -439,7 +457,7 @@ export default function DashboardPage() {
 
       {/* Two Column Layout */}
       <div className="grid lg:grid-cols-2 gap-6">
-        {/* Recent Jobs */}
+        {/* Recent Jobs - Drillable */}
         <div className="bg-white rounded-xl border border-gray-200">
           <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
             <h2 className="font-semibold text-gray-900">Recent Jobs</h2>
@@ -449,10 +467,14 @@ export default function DashboardPage() {
           </div>
           <div className="divide-y divide-gray-100">
             {data.recentJobs.map((job) => (
-              <div key={job.id} className="px-5 py-4 hover:bg-gray-50 transition-colors">
+              <Link
+                key={job.id}
+                href={`/jobs/${job.id}`}
+                className="block px-5 py-4 hover:bg-blue-50 transition-colors group cursor-pointer"
+              >
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="font-medium text-gray-900">{job.name}</p>
+                    <p className="font-medium text-gray-900 group-hover:text-blue-600">{job.name}</p>
                     <p className="text-sm text-gray-500">{job.client_name || 'No client'}</p>
                   </div>
                   <div className="text-right">
@@ -462,7 +484,7 @@ export default function DashboardPage() {
                     </p>
                   </div>
                 </div>
-                <div className="mt-2">
+                <div className="mt-2 flex items-center justify-between">
                   <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
                     job.status === 'completed' ? 'bg-green-100 text-green-700' :
                     job.status === 'active' ? 'bg-blue-100 text-blue-700' :
@@ -470,8 +492,11 @@ export default function DashboardPage() {
                   }`}>
                     {job.status === 'active' ? 'In Progress' : job.status === 'planned' ? 'Scheduled' : 'Completed'}
                   </span>
+                  <span className="text-xs text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+                    View job details <ChevronRight className="w-3 h-3" />
+                  </span>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         </div>

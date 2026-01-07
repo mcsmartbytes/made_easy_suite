@@ -169,18 +169,18 @@ export default function TopNav() {
 
           {/* Right side */}
           <div className="flex items-center gap-2 md:gap-4">
-            {/* Demo mode toggle */}
+            {/* Preview mode toggle */}
             <button
               onClick={toggleDemoMode}
-              className={`hidden md:flex items-center gap-1 px-3 py-1.5 rounded text-sm transition ${
+              className={`hidden md:flex items-center gap-1 px-3 py-1.5 rounded text-sm font-medium transition ${
                 demoMode
-                  ? 'bg-amber-600 text-white hover:bg-amber-700'
+                  ? 'bg-emerald-600 text-white hover:bg-emerald-700'
                   : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
               }`}
-              title={demoMode ? 'Exit Demo Mode' : 'Enter Demo Mode'}
+              title={demoMode ? 'Exit Preview Mode' : 'Enter Preview Mode'}
             >
               <Presentation className="w-4 h-4" />
-              {demoMode ? 'Demo ON' : 'Demo'}
+              {demoMode ? 'Preview Mode' : 'Preview'}
             </button>
 
             {/* Settings */}

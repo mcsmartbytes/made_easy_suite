@@ -272,18 +272,18 @@ export default function Sidebar({ onClose, collapsed = false, onToggleCollapse }
           </button>
         )}
 
-        {/* Presentation Mode Toggle */}
+        {/* Preview Mode Toggle */}
         <button
           onClick={toggleDemoMode}
-          className={`w-full flex items-center ${collapsed ? 'justify-center' : 'gap-3'} px-3 py-2 rounded-lg text-sm transition-colors ${
+          className={`w-full flex items-center ${collapsed ? 'justify-center' : 'gap-3'} px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
             demoMode
-              ? 'bg-amber-600/20 text-amber-400 hover:bg-amber-600/30'
+              ? 'bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600/30'
               : 'text-slate-400 hover:bg-slate-800 hover:text-white'
           }`}
-          title={demoMode ? 'Exit Presentation Mode' : 'Enter Presentation Mode'}
+          title={demoMode ? 'Exit Preview Mode' : 'Enter Preview Mode'}
         >
           <Presentation className="w-4 h-4" />
-          {!collapsed && <span>{demoMode ? 'Demo Mode ON' : 'Presentation'}</span>}
+          {!collapsed && <span>{demoMode ? 'Preview Mode' : 'Preview'}</span>}
         </button>
 
         <Link
