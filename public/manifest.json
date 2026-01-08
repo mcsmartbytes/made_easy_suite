@@ -1,0 +1,20 @@
+{
+  "name": "Made Easy Suite",
+  "short_name": "Made Easy",
+  "description": "Complete business management platform - CRM, Jobs, Expenses, Invoicing, and more. Everything you need to run your business, made easy.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#3b82f6",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "id": "made-easy-suite-app",
+  "icons": [
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
